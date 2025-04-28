@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import NavBar from "../Components/NavBar";
 import Carousel from "../Components/Carousel";
-
 
 function Home() {
   const [albums, setAlbums] = useState([]);
@@ -9,16 +9,13 @@ function Home() {
 
   useEffect(() => {
     const fetchAlbums = async () => {
-      // Get new releases (albums)
-      const res = await fetch("/api/spotify/top-albums"); 
-      const data = await res.json();
-      setAlbums(data.albums); // [{ title, artist, img }]
+      const res = await axios.get("http://localhost:3001/api/spotify/top-albums");
+      setAlbums(res.data.albums);
     };
 
     const fetchSongs = async () => {
-      const res = await fetch("/api/spotify/top-songs"); // Replace with your endpoint
-      const data = await res.json();
-      setSongs(data.songs); // [{ title, artist, img }]
+      const res = await axios.get("http://localhost:3001/api/spotify/top-songs");
+      setSongs(res.data.songs);
     };
 
     fetchAlbums();
