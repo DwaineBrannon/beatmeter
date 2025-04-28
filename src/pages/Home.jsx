@@ -8,17 +8,14 @@ function Home() {
   const [songs, setSongs] = useState([]);
 
   useEffect(() => {
-    // Example: Fetch top albums and tracks from Spotify API
-    // Replace these endpoints with your actual Spotify API calls and auth
     const fetchAlbums = async () => {
-      // Example: Get new releases (albums)
-      const res = await fetch("/api/spotify/top-albums"); // Replace with your endpoint
+      // Get new releases (albums)
+      const res = await fetch("/api/spotify/top-albums"); 
       const data = await res.json();
       setAlbums(data.albums); // [{ title, artist, img }]
     };
 
     const fetchSongs = async () => {
-      // Example: Get top tracks
       const res = await fetch("/api/spotify/top-songs"); // Replace with your endpoint
       const data = await res.json();
       setSongs(data.songs); // [{ title, artist, img }]
@@ -31,9 +28,8 @@ function Home() {
   return (
     <div>
       <NavBar />
-      {/* Hero Section */}
       <div style={{
-        width: "100%",
+        width: "100vw",
         height: 320,
         background: "#222",
         display: "flex",
@@ -43,7 +39,7 @@ function Home() {
         position: "relative"
       }}>
         <div style={{
-          background: "rgba(0,0,0,0.5)",
+          background: "rgba(0, 0, 0, 0.04)",
           color: "#fff",
           padding: "32px 48px",
           borderRadius: 16,
@@ -59,7 +55,7 @@ function Home() {
       </div>
 
       {/* Top Albums Carousel */}
-      <h2 style={{ marginLeft: 32 }}>Top albums on Spotify this week</h2>
+      <h2 style={{ marginLeft: 32 }}>Popular this week!</h2>
       <Carousel
         items={albums}
         renderItem={(album, idx) => (
