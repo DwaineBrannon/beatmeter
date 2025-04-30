@@ -26,7 +26,7 @@ function Home() {
     <div>
       <NavBar />
       <div style={{
-        width: "100vw",
+
         height: 320,
         background: "#222",
         display: "flex",
@@ -36,7 +36,7 @@ function Home() {
         position: "relative"
       }}>
         <div style={{
-          background: "rgba(0, 0, 0, 0.04)",
+          background: "rgba(74, 144, 182, 0.04)",
           color: "#fff",
           padding: "32px 48px",
           borderRadius: 16,
@@ -53,26 +53,42 @@ function Home() {
 
       {/* Top Albums Carousel */}
       <h2 style={{ marginLeft: 32 }}>Popular this week!</h2>
-      <Carousel
-        items={albums}
-        renderItem={(album, idx) => (
-          <div key={idx} style={{
-            minWidth: 180,
-            maxWidth: 200,
-            background: "#fff",
-            borderRadius: 12,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
-            overflow: "hidden",
-            textAlign: "center"
-          }}>
-            <img src={album.img} alt={album.title} style={{ width: "100%", height: 180, objectFit: "cover" }} />
-            <div style={{ padding: 12 }}>
-              <div style={{ fontWeight: "bold" }}>{album.title}</div>
-              <div style={{ color: "#555" }}>{album.artist}</div>
-            </div>
-          </div>
-        )}
-      />
+      <div style={{ 
+        width: "100vw",
+        position: "relative",
+        left: "50%",
+        right: "50%",
+        marginLeft: "-50vw",
+        marginRight: "-50vw",
+        overflow: "hidden" 
+}}>
+  <Carousel
+    items={albums}
+    renderItem={(album, idx) => (
+      <div key={idx} style={{
+        minWidth: 180,
+        maxWidth: 200,
+        background: "#1a1a1a", // Dark background
+        borderRadius: 12,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+        overflow: "hidden",
+        textAlign: "center",
+        margin: "0 12px"
+      }}>
+        <img src={album.img} alt={album.title} style={{ width: "100%", height: 180, objectFit: "cover" }} />
+        <div style={{ padding: 12 }}>
+          <div style={{ 
+            fontWeight: "bold",
+            color: "#fff" // White text
+          }}>{album.title}</div>
+          <div style={{ 
+            color: "rgba(255,255,255,0.7)" // Semi-transparent white
+          }}>{album.artist}</div>
+        </div>
+      </div>
+    )}
+  />
+</div>
 
       {/* Popular Songs Carousel */}
       <h2 style={{ marginLeft: 32, marginTop: 40 }}>Popular songs this week</h2>
@@ -82,7 +98,7 @@ function Home() {
           <div key={idx} style={{
             minWidth: 180,
             maxWidth: 200,
-            background: "#fff",
+            background: "#1a1a1a", // Dark background
             borderRadius: 12,
             boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
             overflow: "hidden",
@@ -90,8 +106,13 @@ function Home() {
           }}>
             <img src={song.img} alt={song.title} style={{ width: "100%", height: 180, objectFit: "cover" }} />
             <div style={{ padding: 12 }}>
-              <div style={{ fontWeight: "bold" }}>{song.title}</div>
-              <div style={{ color: "#555" }}>{song.artist}</div>
+              <div style={{ 
+                fontWeight: "bold",
+                color: "#fff" // White text
+              }}>{song.title}</div>
+              <div style={{ 
+                color: "rgba(255,255,255,0.7)" // Semi-transparent white
+              }}>{song.artist}</div>
             </div>
           </div>
         )}

@@ -35,7 +35,7 @@ app.get("/api/spotify/top-albums", async (req, res) => {
     const token = await getSpotifyToken();
     // Example: Get new releases (you can change this endpoint)
     const albumsRes = await axios.get(
-      "https://api.spotify.com/v1/browse/new-releases?limit=10",
+      "https://api.spotify.com/v1/browse/new-releases?limit=30",
       { headers: { Authorization: "Bearer " + token } }
     );
     const albums = albumsRes.data.albums.items.map((item) => ({
