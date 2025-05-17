@@ -48,7 +48,8 @@ function Carousel({ items, renderItem }) {
           gap: "24px",
           padding: "0 60px",
           userSelect: "none",
-          WebkitScrollbar: { display: "none" }
+          WebkitScrollbar: { display: "none" },
+          justifyContent: "flex-start"
         }}
       >
         <style>
