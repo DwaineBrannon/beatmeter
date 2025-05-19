@@ -1,94 +1,108 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import NavBar from "../features/common/components/NavBar";
 import Carousel from "../features/common/components/Carousel";
 import AlbumCard from "../features/music/components/AlbumCard";
 import SongCard from "../features/music/components/SongCard";
+import { spotifyApi } from "../api/spotify";
+import { homeStyles } from './Home.styles';
+import './Home.css';
 
 function Home() {
   const [albums, setAlbums] = useState([]);
   const [songs, setSongs] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchAlbums = async () => {
-      const res = await axios.get("http://localhost:3001/api/spotify/top-albums");
-      setAlbums(res.data.albums);
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        const [albumsData, songsData] = await Promise.all([
+          spotifyApi.getTopAlbums(),
+          spotifyApi.getTopSongs()
+        ]);
+        setAlbums(albumsData);
+        setSongs(songsData);
+        setError(null);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError('Failed to load music data. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    const fetchSongs = async () => {
-      const res = await axios.get("http://localhost:3001/api/spotify/top-songs");
-      setSongs(res.data.songs);
-    };
-
-    fetchAlbums();
-    fetchSongs();
+    fetchData();
   }, []);
+
+  if (isLoading) {
+    return <div style={homeStyles.loading}>Loading...</div>;
+  }
+
+  if (error) {
+    return <div style={homeStyles.error}>{error}</div>;
+  }
 
   return (
     <div>
-      <NavBar />
-      <div style={{
-        height: 320,
-        background: "#222",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: 32,
-        position: "relative"
-      }}>
-        <div style={{
-          background: "rgba(74, 144, 182, 0.04)",
-          color: "#fff",
-          padding: "32px 48px",
-          borderRadius: 16,
-          fontSize: "2rem",
-          fontWeight: "bold",
-          textAlign: "center",
-          boxShadow: "0 4px 24px rgba(0,0,0,0.3)"
-        }}>
-          Track your favorite music.<br />
-          Rate your favorite music.<br />
-          Show off your taste.
+      <div style={homeStyles.hero}>
+        <div style={homeStyles.heroOverlay} className="hero-overlay" />
+        <div style={homeStyles.heroContent} className="hero-content">
+          <h1 style={homeStyles.heroTitle}>
+            Discover. Rate. Share.
+          </h1>
+          <p style={homeStyles.heroSubtitle}>
+            Your personal music journey starts here.<br />
+            Track your favorite tracks, rate your top albums,<br />
+            and showcase your unique taste in music.
+          </p>
+          <button 
+            style={homeStyles.heroButton}
+            onClick={() => window.scrollTo({ top: document.querySelector('.carousel-container').offsetTop, behavior: 'smooth' })}
+          >
+            Explore Top Music
+          </button>
         </div>
       </div>
 
-      {/* Top Albums Carousel */}
-      {/*header that shows "Top Albums" on the left side of the page, above the carousel*/} 
-      <h2 style={{ marginLeft: 32 }}>Top Albums</h2>
-      {/* Carousel for albums */}
-      {/* The carousel should be full width and centered on the page */}
-      <div style={{
-        width: "100vw",
-        position: "relative",
-        left: "50%",
-        right: "50%",
-        marginLeft: "-50vw",
-        marginRight: "-50vw",
-        overflow: "hidden"
-      }}>
+      <h2 style={homeStyles.sectionTitle}>Top Albums</h2>
+      <div style={{...homeStyles.carouselContainer, className: 'carousel-container'}}>
         <Carousel
           items={albums}
-          renderItem={(album, idx) => (
-            <AlbumCard key={idx} album={album} />
+          renderItem={(album, { dragged }) => (
+            <AlbumCard
+              key={album.id}
+              album={album}
+              onClick={e => {
+                if (dragged) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                // Handle album click (e.g., open album details)
+                alert(`Clicked ${album.title}`);
+              }}
+            />
           )}
         />
       </div>
 
-      {/* Popular Songs Carousel */}
-      <h2 style={{ marginLeft: 32, marginTop: 40 }}>Top Songs</h2>
-      <div style={{ 
-        width: "100vw",
-        position: "relative",
-        left: "50%",
-        right: "50%",
-        marginLeft: "-50vw",
-        marginRight: "-50vw",
-        overflow: "hidden" 
-      }}>
+      <h2 style={{ ...homeStyles.sectionTitle, ...homeStyles.songsSection }}>Top Songs</h2>
+      <div style={homeStyles.carouselContainer}>
         <Carousel
           items={songs}
-          renderItem={(song, idx) => (
-            <SongCard key={idx} song={song} />
+          renderItem={(song, { dragged }) => (
+            <SongCard
+              song={song}
+              onClick={e => {
+                if (dragged) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return;
+                }
+                // Handle song click (e.g., play song or open details)
+                alert(`Clicked ${song.title}`);
+              }}
+            />
           )}
         />
       </div>

@@ -1,16 +1,27 @@
 const dotenv = require("dotenv");
+const path = require("path");
 const express = require("express");
 const axios = require("axios");
 const cors = require("cors");
 
-dotenv.config();
+// Load environment variables from .env in the root directory
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Check if Spotify credentials are set
+if (!process.env.SPOTIFY_CLIENT_ID || !process.env.SPOTIFY_CLIENT_SECRET) {
+  console.error("Error: Spotify credentials not found in .env file");
+  console.error("Please ensure .env exists in the root directory with valid SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET");
+  process.exit(1);
+}
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173' // Frontend port
+}));
 
 const PORT = 3001;
 
-// spotify API credentials
+// Get Spotify access token using client credentials
 async function getSpotifyToken() {
     try {
         const res = await axios.post(
@@ -21,33 +32,107 @@ async function getSpotifyToken() {
             {
                 headers: {
                     Authorization: "Basic " + Buffer.from(
-                        (process.env.SPOTIFY_CLIENT_ID || "your_client_id") + ":" + (process.env.SPOTIFY_CLIENT_SECRET || "your_client_secret")
+                        process.env.SPOTIFY_CLIENT_ID + ":" + process.env.SPOTIFY_CLIENT_SECRET
                     ).toString("base64"),
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
             }
         );
-        console.log("Token Response:", res.data); // Add this line
         return res.data.access_token;
     } catch (error) {
-        console.error("Error getting token:", error.response ? error.response.data : error.message);
-        throw error; // Re-throw the error to be caught in the main function
+        console.error("Error getting Spotify token:");
+        if (error.response) {
+            console.error("Status:", error.response.status);
+            console.error("Data:", error.response.data);
+        } else {
+            console.error(error.message);
+        }
+        throw new Error("Failed to get Spotify access token");
     }
 }
+
+// Top Songs endpoint
+app.get("/api/spotify/top-songs", async (req, res) => {
+  try {
+    const token = await getSpotifyToken();
+    console.log("Got Spotify token successfully");
+
+    // Use the new-releases endpoint
+    console.log("Fetching new releases...");
+    const newReleasesRes = await axios.get(
+      'https://api.spotify.com/v1/browse/new-releases?limit=20',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    console.log("Successfully fetched new releases data");
+    const songs = newReleasesRes.data.albums.items.map((item) => ({
+      id: item.id,
+      title: item.name, // This is the album name, we need to get the first track
+      artist: item.artists.map((a) => a.name).join(", "),
+      img: item.images[0]?.url,
+    }));
+
+    // Get the first track for each album to display as a song
+    const songsWithTracks = await Promise.all(songs.map(async (song) => {
+      try {
+        const albumTracksRes = await axios.get(
+          `https://api.spotify.com/v1/albums/${song.id}/tracks?limit=1`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        const firstTrack = albumTracksRes.data.items[0];
+        return {
+          ...song,
+          title: firstTrack.name, // Use the track name instead of album name
+          artist: firstTrack.artists.map(a => a.name).join(", ")
+        };
+      } catch (err) {
+        console.error(`Error fetching tracks for album ${song.id}:`, err);
+        return song;
+      }
+    }));
+
+    res.json({ songs: songsWithTracks });
+  } catch (err) {
+    console.error("Songs error details:");
+    if (err.response) {
+      console.error("Status:", err.response.status);
+      console.error("Headers:", JSON.stringify(err.response.headers, null, 2));
+      console.error("Data:", JSON.stringify(err.response.data, null, 2));
+      console.error("Request URL:", err.config?.url);
+      console.error("Request Headers:", JSON.stringify(err.config?.headers, null, 2));
+    } else {
+      console.error("Error message:", err.message);
+    }
+    res.status(500).json({ 
+      error: "Failed to fetch songs",
+      details: err.response?.data || err.message,
+      status: err.response?.status
+    });
+  }
+});
 
 // Top Albums
 app.get("/api/spotify/top-albums", async (req, res) => {
   try {
     const token = await getSpotifyToken();
-    // Extract playlist ID from the full URI
-    const playlistId = "7qWT4WcLgV6UUIPde0fqf9"; // Remove spotify:playlist: prefix
+    const playlistId = "7qWT4WcLgV6UUIPde0fqf9";
 
     const albumsRes = await axios.get(
       `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=30`,
       { headers: { Authorization: "Bearer " + token } }
     );
 
-    const seenAlbums = new Set(); // To keep track of seen album names
+    const seenAlbums = new Set();
     const albums = [];
 
     for (const item of albumsRes.data.items) {
@@ -55,58 +140,26 @@ app.get("/api/spotify/top-albums", async (req, res) => {
       if (!seenAlbums.has(albumName)) {
         albums.push({
           title: albumName,
-          artist: item.track.artists[0]?.name || "Unknown Artist", // Show only the first artist
+          artist: item.track.artists[0]?.name || "Unknown Artist",
           img: item.track.album.images[0]?.url,
         });
-        seenAlbums.add(albumName); // Add album name to the set
+        seenAlbums.add(albumName);
       }
     }
 
     res.json({ albums });
   } catch (err) {
-    console.error("Albums error:", err.response?.data || err.message || err);
-    res.status(500).json({ error: "Failed to fetch albums" });
-  }
-});
-
-app.get("/api/spotify/top-songs", async (req, res) => {
-  try {
-    const token = await getSpotifyToken();
-
-    // Use the /browse/featured-playlists endpoint to get a list of featured playlists
-    const featuredPlaylistsRes = await axios.get(
-      `https://api.spotify.com/v1/browse/featured-playlists?limit=1`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    // Extract the playlist ID from the featured playlists response
-    const playlistId = featuredPlaylistsRes.data.playlists.items[0].id;
-
-    // Use the /playlists/{playlist_id} endpoint to get the details of the playlist
-    const playlistRes = await axios.get(
-      `https://api.spotify.com/v1/playlists/${playlistId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
-    const songs = playlistRes.data.tracks.items.map((item) => ({
-      title: item.track.name,
-      artist: item.track.artists.map((a) => a.name).join(", "),
-      img: item.track.album.images[0]?.url,
-    }));
-    res.json({ songs });
-  } catch (err) {
-    console.error("Songs error:", err);
-    res.status(500).json({ error: "Failed to fetch songs" });
+    console.error("Error fetching albums:");
+    if (err.response) {
+      console.error("Status:", err.response.status);
+      console.error("Data:", err.response.data);
+    } else {
+      console.error(err.message);
+    }
+    res.status(500).json({ 
+      error: "Failed to fetch albums",
+      details: err.response?.data || err.message 
+    });
   }
 });
 
