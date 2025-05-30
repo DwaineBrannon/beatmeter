@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import { theme } from "../../../styles/theme";
 import "./NavBar.css";
 
 // Accept isSignedIn, user, and onSignOut as props
@@ -96,7 +95,7 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
         <div className="navbar-links">
           <Link to="/music" className="navbar-link">Music</Link>
           <Link to="/lists" className="navbar-link">Lists</Link>
-          <Link to="/profile/yourusername" className="navbar-link">Profile</Link>
+          <Link to="/profile" className="navbar-link">Profile</Link>
           <div className="navbar-divider" />
           {isSignedIn ? (
             <div className="navbar-avatar-container">
@@ -124,7 +123,7 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
           )}
           <Link to="/music" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Music</Link>
           <Link to="/lists" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Lists</Link>
-          <Link to="/profile/yourusername" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Profile</Link>
+          <Link to="/profile" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Profile</Link>
           {!isSignedIn && <>
             <Link to="/login" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Sign In</Link>
             <Link to="/create-account" className="navbar-mobile-link navbar-mobile-link-cta" onClick={() => setMobileOpen(false)}>Create Account</Link>

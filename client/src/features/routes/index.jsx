@@ -1,9 +1,9 @@
 import { Route } from 'react-router-dom';
-import MainLayout from '../components/layout/MainLayout';
-import Home from '../pages/Home';
-import Profile from '../pages/Profile';
-import Sorter from '../pages/BiasSorter';
-import Login from '../pages/Login';
+import MainLayout from '../../components/layout/MainLayout';
+import Home from '../../pages/Home';
+import Profile from '../../pages/Profile';
+import Sorter from '../../pages/BiasSorter';
+import Login from '../../pages/Login';
 
 // Route configuration with metadata
 export const routes = [
@@ -22,7 +22,7 @@ export const routes = [
     description: 'Sort and rank your favorite songs'
   },
   {
-    path: '/profile/:username',
+    path: '/profile', // Changed from '/profile/:username'
     element: Profile,
     title: 'Profile | BeatMeter',
     isPublic: true,
@@ -41,7 +41,7 @@ export const routes = [
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: Element, title }) => (
+      {routes.map(({ path, element: PageElement, title }) => (
         <Route 
           key={path} 
           path={path} 
@@ -49,11 +49,11 @@ export const generateRoutes = () => {
             <>
               {/* Update page title when route changes */}
               <title>{title}</title>
-              <Element />
+              <PageElement />
             </>
           } 
         />
       ))}
     </Route>
   );
-}; 
+};

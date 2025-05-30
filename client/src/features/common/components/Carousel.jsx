@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from "react";
+import { theme } from "../../../styles/theme"; // Import the theme
 
 function Carousel({ items, renderItem }) {
   const scrollRef = useRef(null);
@@ -9,8 +10,8 @@ function Carousel({ items, renderItem }) {
   const [dragged, setDragged] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const dragThreshold = 8; // px
-  const edgeThreshold = 100; // px - distance from edge to show arrows
+  const dragThreshold = 8; // px - Consider if this should be a theme variable if used elsewhere
+  const edgeThreshold = 100; // px - Consider if this should be a theme variable
 
   const scroll = useCallback((direction) => {
     const scrollAmount = scrollRef.current.offsetWidth * 0.8;
@@ -94,16 +95,16 @@ function Carousel({ items, renderItem }) {
   }, []);
 
   // Wrap renderItem to pass dragged flag
-  const wrappedRenderItem = (item, idx) => renderItem(item, { dragged });
+  const wrappedRenderItem = (item) => renderItem(item, { dragged });
 
   return (
-    <div 
+    <div
       ref={containerRef}
-      style={{ 
-        position: "relative", 
-        width: "100%", 
-        padding: "20px 0",
-        overflow: "hidden" // Prevent horizontal overflow
+      style={{
+        position: "relative",
+        width: "100%",
+        padding: `${theme.spacing.medium || '20px'} 0`, // Was "20px 0"
+        overflow: "hidden"
       }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
@@ -114,8 +115,8 @@ function Carousel({ items, renderItem }) {
         left: 0,
         top: 0,
         bottom: 0,
-        width: "100px",
-        background: "linear-gradient(to right, rgba(25, 28, 28, 0.47), rgba(181, 179, 179, 0))",
+        width: "100px", // Consider if this width should be themeable
+        background: `linear-gradient(to right, ${theme.colors.background.primary || 'rgba(25, 28, 28, 0.47)'}, rgba(181, 179, 179, 0))`, // Updated color
         pointerEvents: "none",
         zIndex: 1
       }} />
@@ -124,8 +125,8 @@ function Carousel({ items, renderItem }) {
         right: 0,
         top: 0,
         bottom: 0,
-        width: "100px",
-        background: "linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255,255,255,0))",
+        width: "100px", // Consider if this width should be themeable
+        background: "linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255,255,255,0))", // This seems to be transparent, check if theme color is needed
         pointerEvents: "none",
         zIndex: 1
       }} />
@@ -140,8 +141,8 @@ function Carousel({ items, renderItem }) {
           msOverflowStyle: "none",
           scrollbarWidth: "none",
           WebkitOverflowScrolling: "touch",
-          gap: "24px",
-          padding: "0 80px", // Increased padding to prevent arrow cutoff
+          gap: theme.spacing.large || "24px", // Was "24px"
+          padding: `0 ${theme.spacing.xlarge || '80px'}`, // Was "0 80px", consider if 80px should be a theme value
           userSelect: "none",
           WebkitScrollbar: { display: "none" },
           justifyContent: "flex-start",
@@ -161,8 +162,13 @@ function Carousel({ items, renderItem }) {
             }
           `}
         </style>
-        <div className="carousel-content" style={{ display: "flex", gap: "24px" }}>
-          {items.map(wrappedRenderItem)}
+        <div className="carousel-content" style={{ display: "flex", gap: theme.spacing.large || "24px" }}> {/* Was "24px" */}
+          {items.map((item, idx) => {
+            // Assuming 'item' has a unique 'id' property
+            // If not, use a different unique property or 'idx' if items are static
+            const key = item.id || idx;
+            return <div key={key}>{wrappedRenderItem(item)}</div>;
+          })}
         </div>
       </div>
 
@@ -171,15 +177,15 @@ function Carousel({ items, renderItem }) {
         onClick={() => scroll('left')}
         style={{
           position: "absolute",
-          left: "20px",
+          left: theme.spacing.medium || "20px", // Was "20px"
           top: "50%",
           transform: "translateY(-50%)",
           zIndex: 2,
-          background: "rgba(0, 0, 0, 0.8)",
-          color: "#fff",
+          background: theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)", // Example: Using a button theme
+          color: theme.buttons.secondary.text || "#fff", // Example: Using a button theme
           border: "none",
-          borderRadius: "50%",
-          width: "48px",
+          borderRadius: "50%", // Consider theme.borderRadius if a circular button style is common
+          width: "48px", // Consider if this should be a theme variable (e.g., theme.sizing.iconButton)
           height: "48px",
           minWidth: "48px",
           minHeight: "48px",
@@ -190,9 +196,9 @@ function Carousel({ items, renderItem }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "24px",
+          fontSize: theme.spacing.large || "24px", // Was "24px"
           lineHeight: 1,
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+          boxShadow: theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)", // Was "0 2px 8px rgba(0, 0, 0, 0.2)"
           aspectRatio: "1",
           pointerEvents: showLeftArrow ? "auto" : "none",
           visibility: showLeftArrow ? "visible" : "hidden"
@@ -201,16 +207,16 @@ function Carousel({ items, renderItem }) {
           if (showLeftArrow) {
             e.currentTarget.style.opacity = "1";
             e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-            e.currentTarget.style.background = "rgba(0, 0, 0, 0.9)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+            e.currentTarget.style.background = theme.buttons.secondary.hoverBackground || "rgba(0, 0, 0, 0.9)"; // Example
+            e.currentTarget.style.boxShadow = theme.shadows.medium || "0 4px 12px rgba(0, 0, 0, 0.3)"; // Example
           }
         }}
         onMouseLeave={(e) => {
           if (showLeftArrow) {
             e.currentTarget.style.opacity = "0.9";
             e.currentTarget.style.transform = "translateY(-50%)";
-            e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
-            e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.2)";
+            e.currentTarget.style.background = theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)"; // Example
+            e.currentTarget.style.boxShadow = theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)"; // Example
           }
         }}
       >←</button>
@@ -219,15 +225,15 @@ function Carousel({ items, renderItem }) {
         onClick={() => scroll('right')}
         style={{
           position: "absolute",
-          right: "20px",
+          right: theme.spacing.medium || "20px", // Was "20px"
           top: "50%",
           transform: "translateY(-50%)",
           zIndex: 2,
-          background: "rgba(0, 0, 0, 0.8)",
-          color: "#fff",
+          background: theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)", // Example
+          color: theme.buttons.secondary.text || "#fff", // Example
           border: "none",
-          borderRadius: "50%",
-          width: "48px",
+          borderRadius: "50%", // Consider theme.borderRadius
+          width: "48px", // Consider theme.sizing.iconButton
           height: "48px",
           minWidth: "48px",
           minHeight: "48px",
@@ -238,9 +244,9 @@ function Carousel({ items, renderItem }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: "24px",
+          fontSize: theme.spacing.large || "24px", // Was "24px"
           lineHeight: 1,
-          boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+          boxShadow: theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)", // Was "0 2px 8px rgba(0, 0, 0, 0.2)"
           aspectRatio: "1",
           pointerEvents: showRightArrow ? "auto" : "none",
           visibility: showRightArrow ? "visible" : "hidden"
@@ -249,16 +255,16 @@ function Carousel({ items, renderItem }) {
           if (showRightArrow) {
             e.currentTarget.style.opacity = "1";
             e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-            e.currentTarget.style.background = "rgba(0, 0, 0, 0.9)";
-            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.3)";
+            e.currentTarget.style.background = theme.buttons.secondary.hoverBackground || "rgba(0, 0, 0, 0.9)"; // Example
+            e.currentTarget.style.boxShadow = theme.shadows.medium || "0 4px 12px rgba(0, 0, 0, 0.3)"; // Example
           }
         }}
         onMouseLeave={(e) => {
           if (showRightArrow) {
             e.currentTarget.style.opacity = "0.9";
             e.currentTarget.style.transform = "translateY(-50%)";
-            e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)";
-            e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.2)";
+            e.currentTarget.style.background = theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)"; // Example
+            e.currentTarget.style.boxShadow = theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)"; // Example
           }
         }}
       >→</button>

@@ -4,7 +4,6 @@ import AlbumCard from "../features/music/components/AlbumCard";
 import SongCard from "../features/music/components/SongCard";
 import { spotifyApi } from "../api/spotify";
 import { homeStyles } from './Home.styles';
-import './Home.css';
 
 function Home() {
   const [albums, setAlbums] = useState([]);
