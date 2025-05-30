@@ -3,7 +3,20 @@ import Carousel from "../features/common/components/Carousel";
 import AlbumCard from "../features/music/components/AlbumCard";
 import SongCard from "../features/music/components/SongCard";
 import { spotifyApi } from "../api/spotify";
-import { homeStyles } from './Home.styles';
+import {
+  HomeContainer,
+  Hero,
+  HeroOverlay,
+  HeroContent,
+  HeroTitle,
+  HeroSubtitle,
+  HeroButton,
+  SectionTitle,
+  CarouselContainer,
+  SongsSection,
+  Loading,
+  Error
+} from './Home.styles';
 
 function Home() {
   const [albums, setAlbums] = useState([]);
@@ -32,39 +45,35 @@ function Home() {
 
     fetchData();
   }, []);
-
   if (isLoading) {
-    return <div style={homeStyles.loading}>Loading...</div>;
+    return <Loading>Loading...</Loading>;
   }
 
   if (error) {
-    return <div style={homeStyles.error}>{error}</div>;
+    return <Error>{error}</Error>;
   }
 
   return (
-    <div>
-      <div style={homeStyles.hero}>
-        <div style={homeStyles.heroOverlay} className="hero-overlay" />
-        <div style={homeStyles.heroContent} className="hero-content">
-          <h1 style={homeStyles.heroTitle}>
+    <HomeContainer>
+      <Hero>
+        <HeroOverlay />
+        <HeroContent>
+          <HeroTitle>
             Discover. Rate. Share.
-          </h1>
-          <p style={homeStyles.heroSubtitle}>
+          </HeroTitle>
+          <HeroSubtitle>
             Your personal music journey starts here.<br />
             Track your favorite tracks, rate your top albums,<br />
             and showcase your unique taste in music.
-          </p>
-          <button 
-            style={homeStyles.heroButton}
-            onClick={() => window.scrollTo({ top: document.querySelector('.carousel-container').offsetTop, behavior: 'smooth' })}
+          </HeroSubtitle>
+          <HeroButton 
+            onClick={() => window.scrollTo({ top: document.querySelector('.carousel-container')?.offsetTop || 0, behavior: 'smooth' })}
           >
             Explore Top Music
-          </button>
-        </div>
-      </div>
-
-      <h2 style={homeStyles.sectionTitle}>Top Albums</h2>
-      <div style={{...homeStyles.carouselContainer, className: 'carousel-container'}}>
+          </HeroButton>
+        </HeroContent>
+      </Hero>      <SectionTitle>Top Albums</SectionTitle>
+      <CarouselContainer>
         <Carousel
           items={albums}
           renderItem={(album, { dragged }) => (
@@ -83,10 +92,10 @@ function Home() {
             />
           )}
         />
-      </div>
+      </CarouselContainer>
 
-      <h2 style={{ ...homeStyles.sectionTitle, ...homeStyles.songsSection }}>Top Songs</h2>
-      <div style={homeStyles.carouselContainer}>
+      <SongsSection>Top Songs</SongsSection>
+      <CarouselContainer>
         <Carousel
           items={songs}
           renderItem={(song, { dragged }) => (
@@ -104,8 +113,8 @@ function Home() {
             />
           )}
         />
-      </div>
-    </div>
+      </CarouselContainer>
+    </HomeContainer>
   );
 }
 

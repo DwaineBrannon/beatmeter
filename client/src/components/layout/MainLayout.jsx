@@ -1,24 +1,15 @@
 import { Outlet } from 'react-router-dom';
 import NavBar from '../../features/common/components/NavBar';
+import { LayoutContainer, MainContent } from './MainLayout.styles';
 
 function MainLayout() {
   return (
-    <div style={{ 
-      width: '100%',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <LayoutContainer>
       <NavBar />
-      <main style={{ 
-        flex: 1,
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
+      <MainContent>
         <Outlet />
-      </main>
-    </div>
+      </MainContent>
+    </LayoutContainer>
   );
 }
 

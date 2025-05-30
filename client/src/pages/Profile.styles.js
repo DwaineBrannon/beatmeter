@@ -1,175 +1,193 @@
-import { theme } from '../styles/theme';
+import styled from 'styled-components';
 
-export const profileStyles = {
-  profilePageContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: theme.spacing.large || '20px',
-    backgroundColor: theme.colors.background.secondary || '#f4f4f4', // Example theme usage
-  },
-  profileHeaderContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    marginBottom: theme.spacing.large || '20px',
-    width: '100%',
-    maxWidth: '800px', // Example constraint
-  },
-  profilePicture: {
-    width: '150px',
-    height: '150px',
-    borderRadius: '50%',
-    marginRight: theme.spacing.medium || '20px',
-    objectFit: 'cover',
-    border: `3px solid ${theme.colors.accent || '#007bff'}`, // Example theme usage
-  },
-  userInfoContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  userNameText: {
-    margin: 0,
-    fontSize: '2rem', // Larger username
-    fontWeight: 'bold',
-    color: theme.colors.text.primary || '#111',
-  },
-  userBioText: {
-    fontSize: '1rem',
-    color: theme.colors.text.secondary || '#555',
-    marginTop: theme.spacing.small || '8px',
-  },
-  editProfileButton: {
-    padding: `${theme.spacing.small} ${theme.spacing.medium}`,
-    backgroundColor: theme.colors.accent || '#007bff',
-    color: theme.colors.text.primary || 'white',
-    border: 'none',
-    borderRadius: theme.borderRadius.small || '4px',
-    cursor: 'pointer',
-    marginTop: theme.spacing.medium || '10px',
-    fontWeight: '600',
-    '&:hover': {
-      backgroundColor: '#0056b3', // Darker shade for hover
-    },
-  },
-  followButtonBase: {
-    padding: `${theme.spacing.small} ${theme.spacing.medium}`,
-    color: theme.colors.text.primary || 'white',
-    border: 'none',
-    borderRadius: theme.borderRadius.small || '4px',
-    cursor: 'pointer',
-    marginTop: theme.spacing.medium || '10px',
-    fontWeight: '600',
-  },
-  followButtonActiveState: { // When user is already following (button shows "Unfollow")
-    backgroundColor: '#ccc',
-    '&:hover': {
-      backgroundColor: '#bbb',
-    },
-  },
-  followButtonInactiveState: { // When user is not following (button shows "Follow")
-    backgroundColor: theme.colors.accent || '#28a745',
-    '&:hover': {
-      backgroundColor: '#1e7e34', // Darker shade
-    },
-  },
-  profileStatsContainer: {
-    display: 'flex',
-    justifyContent: 'space-around', // Or 'flex-start' with spacing
-    width: '100%',
-    maxWidth: '400px',
-    marginBottom: theme.spacing.large || '20px',
-    gap: theme.spacing.medium || '16px', // For spacing between stat items
-  },
-  statItemText: {
-    fontSize: '1rem',
-    color: theme.colors.text.secondary || '#333',
-    textAlign: 'center',
-  },
-  contentSectionContainer: { // A general container for Posts and Music sections
-    width: '100%',
-    maxWidth: '800px', // Example constraint
-    marginTop: theme.spacing.large || '20px',
-  },
-  sectionTitleText: {
-    fontSize: '1.75rem',
-    fontWeight: '600',
-    marginBottom: theme.spacing.medium || '15px',
-    color: theme.colors.text.primary || '#222',
-  },
-  contentFiltersContainer: {
-    display: 'flex',
-    justifyContent: 'center',
-    marginBottom: theme.spacing.medium || '20px',
-    gap: theme.spacing.small || '8px',
-  },
-  filterButton: {
-    padding: `${theme.spacing.small} ${theme.spacing.medium}`,
-    backgroundColor: theme.colors.background.primary || '#f0f0f0',
-    border: `1px solid ${theme.colors.background.accent || '#ccc'}`,
-    borderRadius: theme.borderRadius.small || '4px',
-    cursor: 'pointer',
-    color: theme.colors.text.secondary || '#333',
-    '&:hover': {
-      backgroundColor: '#e0e0e0', // Slightly darker on hover
-    },
-  },
-  filterButtonActive: {
-    // These styles are merged with filterButton for the active one
-    backgroundColor: theme.colors.accent || '#007bff',
-    color: theme.colors.text.primary || 'white',
-    borderColor: theme.colors.accent || '#007bff',
-    '&:hover': {
-      backgroundColor: '#0056b3', // Darker shade of accent for hover on active
-    },
-  },
-  postsListContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing.medium || '15px',
-  },
-  postItemContainer: {
-    padding: theme.spacing.medium || '15px',
-    border: `1px solid ${theme.colors.background.accent || '#ddd'}`,
-    borderRadius: theme.borderRadius.medium || '8px',
-    backgroundColor: theme.colors.background.primary || '#fff',
-    boxShadow: theme.shadows.small,
-  },
-  postTitleText: {
-    margin: `0 0 ${theme.spacing.small || '10px'} 0`,
-    fontSize: '1.25rem',
-    fontWeight: '600',
-    color: theme.colors.text.primary || '#333',
-  },
-  postContentText: {
-    fontSize: '1rem',
-    color: theme.colors.text.secondary || '#444',
-    lineHeight: '1.6',
-  },
-  musicGridContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-    gap: theme.spacing.medium || '15px',
-  },
-  albumItemContainer: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    textAlign: 'center',
-    padding: theme.spacing.small,
-    backgroundColor: theme.colors.background.primary || '#fff',
-    borderRadius: theme.borderRadius.medium || '8px',
-    boxShadow: theme.shadows.small,
-  },
-  albumItemImage: {
-    width: '100px',
-    height: '100px',
-    objectFit: 'cover',
-    borderRadius: theme.borderRadius.small || '4px',
-    marginBottom: theme.spacing.small || '5px',
-  },
-  albumItemTitleText: {
-    fontSize: '0.9rem',
-    color: theme.colors.text.primary || '#333',
-    fontWeight: '500',
-  },
-};
+// Styled components that properly use the theme through ThemeProvider
+export const ProfilePageContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: ${props => props.theme.spacing.large || '20px'};
+  background-color: ${props => props.theme.colors.background.secondary || '#f4f4f4'};
+`;
+
+export const ProfileHeaderContainer = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: ${props => props.theme.spacing.large || '20px'};
+  width: 100%;
+  max-width: 800px;
+`;
+
+export const ProfilePicture = styled.img`
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  margin-right: ${props => props.theme.spacing.medium || '20px'};
+  object-fit: cover;
+  border: 3px solid ${props => props.theme.colors.accent || '#007bff'};
+`;
+
+export const UserInfoContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+export const UserNameText = styled.h1`
+  margin: 0;
+  font-size: 2rem;
+  font-weight: bold;
+  color: ${props => props.theme.colors.text.primary || '#111'};
+`;
+
+export const UserBioText = styled.p`
+  font-size: 1rem;
+  color: ${props => props.theme.colors.text.secondary || '#555'};
+  margin-top: ${props => props.theme.spacing.small || '8px'};
+`;
+
+export const EditProfileButton = styled.button`
+  padding: ${props => props.theme.spacing.small} ${props => props.theme.spacing.medium};
+  background-color: ${props => props.theme.colors.accent || '#007bff'};
+  color: ${props => props.theme.colors.text.primary || 'white'};
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.small || '4px'};
+  cursor: pointer;
+  margin-top: ${props => props.theme.spacing.medium || '10px'};
+  font-weight: 600;
+  
+  &:hover {
+    background-color: #0056b3;
+  }
+`;
+
+export const FollowButton = styled.button`
+  padding: ${props => props.theme.spacing.small} ${props => props.theme.spacing.medium};
+  color: ${props => props.theme.colors.text.primary || 'white'};
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.small || '4px'};
+  cursor: pointer;
+  margin-top: ${props => props.theme.spacing.medium || '10px'};
+  font-weight: 600;
+  background-color: ${props => props.isFollowing 
+    ? '#ccc' 
+    : props.theme.colors.accent || '#28a745'};
+  
+  &:hover {
+    background-color: ${props => props.isFollowing ? '#bbb' : '#1e7e34'};
+  }
+`;
+
+export const ProfileStatsContainer = styled.div`
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: ${props => props.theme.spacing.large || '20px'};
+  gap: ${props => props.theme.spacing.medium || '16px'};
+`;
+
+export const StatItemText = styled.div`
+  font-size: 1rem;
+  color: ${props => props.theme.colors.text.secondary || '#333'};
+  text-align: center;
+`;
+
+export const ContentSectionContainer = styled.div`
+  width: 100%;
+  max-width: 800px;
+  margin-top: ${props => props.theme.spacing.large || '20px'};
+`;
+
+export const SectionTitleText = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: ${props => props.theme.spacing.medium || '15px'};
+  color: ${props => props.theme.colors.text.primary || '#222'};
+`;
+
+export const ContentFiltersContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-bottom: ${props => props.theme.spacing.medium || '20px'};
+  gap: ${props => props.theme.spacing.small || '8px'};
+`;
+
+export const FilterButton = styled.button`
+  padding: ${props => props.theme.spacing.small} ${props => props.theme.spacing.medium};
+  background-color: ${props => props.isActive 
+    ? props.theme.colors.accent || '#007bff'
+    : props.theme.colors.background.primary || '#f0f0f0'};
+  border: 1px solid ${props => props.isActive 
+    ? props.theme.colors.accent || '#007bff'
+    : props.theme.colors.background.accent || '#ccc'};
+  border-radius: ${props => props.theme.borderRadius.small || '4px'};
+  cursor: pointer;
+  color: ${props => props.isActive 
+    ? props.theme.colors.text.primary || 'white'
+    : props.theme.colors.text.secondary || '#333'};
+  
+  &:hover {
+    background-color: ${props => props.isActive 
+      ? '#0056b3'
+      : '#e0e0e0'};
+  }
+`;
+
+export const PostsListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${props => props.theme.spacing.medium || '15px'};
+`;
+
+export const PostItemContainer = styled.div`
+  padding: ${props => props.theme.spacing.medium || '15px'};
+  border: 1px solid ${props => props.theme.colors.background.accent || '#ddd'};
+  border-radius: ${props => props.theme.borderRadius.medium || '8px'};
+  background-color: ${props => props.theme.colors.background.primary || '#fff'};
+  box-shadow: ${props => props.theme.shadows.small};
+`;
+
+export const PostTitleText = styled.h3`
+  margin: 0 0 ${props => props.theme.spacing.small || '10px'} 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${props => props.theme.colors.text.primary || '#333'};
+`;
+
+export const PostContentText = styled.p`
+  font-size: 1rem;
+  color: ${props => props.theme.colors.text.secondary || '#444'};
+  line-height: 1.6;
+`;
+
+export const MusicGridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: ${props => props.theme.spacing.medium || '15px'};
+`;
+
+export const AlbumItemContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: ${props => props.theme.spacing.small};
+  background-color: ${props => props.theme.colors.background.primary || '#fff'};
+  border-radius: ${props => props.theme.borderRadius.medium || '8px'};
+  box-shadow: ${props => props.theme.shadows.small};
+`;
+
+export const AlbumItemImage = styled.img`
+  width: 100px;
+  height: 100px;
+  object-fit: cover;
+  border-radius: ${props => props.theme.borderRadius.small || '4px'};
+  margin-bottom: ${props => props.theme.spacing.small || '5px'};
+`;
+
+export const AlbumItemTitleText = styled.h4`
+  font-size: 0.9rem;
+  color: ${props => props.theme.colors.text.primary || '#333'};
+  font-weight: 500;
+`;
+
+// Legacy styles removed - now using styled-components above

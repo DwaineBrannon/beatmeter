@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from "react";
 import html2canvas from "html2canvas";
+import {
+  SorterContainer,
+  SorterHeader,
+  ButtonContainer,
+  SorterButton,
+  FinalRankingContainer,
+  RankingContent,
+  RankingTitle,
+  SongInfo,
+  SongTitle,
+  ArtistName,
+  AlbumCover,
+  ComparisonContainer,
+  ComparisonControls
+} from './BiasSorter.styles';
 
 // Accept 'album' prop instead of albumName/artistName
 const BiasSorter = ({ songs, album }) => {
@@ -88,143 +103,71 @@ const BiasSorter = ({ songs, album }) => {
 
   // Main content area: always rendered, fixed minHeight
   const mainContent = isSorted ? (
-    <div id="final-ranking" style={{
-      width: "100%",
-      maxWidth: 500,
-      background: "linear-gradient(to right, rgb(125, 163, 216), rgb(246, 220, 182))",
-      color: "#fff",
-      borderRadius: 8,
-      padding: 16,
-      marginBottom: 16,
-      position: 'relative',
-      boxShadow: '0 8px 24px 0 rgba(0,0,0,0.25)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 16,
-      minHeight: 220 // Ensures height is stable
-    }}>
-      <div style={{flex: 1}}>
-        <h3 style={{marginTop:0, marginBottom:8, fontWeight:'bold'}}>MY {albumName ? albumName : "Song"} Ranking</h3>
+    <FinalRankingContainer id="final-ranking">
+      <RankingContent>
+        <RankingTitle>MY {albumName ? albumName : "Song"} Ranking</RankingTitle>
         {albumName && (
-          <div style={{ fontWeight: 'bold', fontSize: '1.1rem', marginBottom: 2 ,
-             textShadow: '2px 2px 6px rgba(0,0,0,.75)'}}>{albumName}</div>
+          <SongInfo>
+            <SongTitle>{albumName}</SongTitle>
+          </SongInfo>
         )}
         {artistNames && (
-          <div style={{ fontSize: '1rem', marginBottom: 12, textShadow: '2px 2px 6px rgba(0,0,0,.75)' }}>{artistNames}</div>
+          <ArtistName>{artistNames}</ArtistName>
         )}
         <ol>
           {sortedList.map((song, index) => (
             <li key={index}>{song}</li>
           ))}
         </ol>
-      </div>
+      </RankingContent>
       {albumCover && (
-        <img src={albumCover} alt="Album cover" style={{ width: 120, height: 120, borderRadius: 8, objectFit: 'cover', marginLeft: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.18)'}} />
+        <AlbumCover src={albumCover} alt="Album cover" />
       )}
-    </div>
+    </FinalRankingContainer>
   ) : currentComparison ? (
-    <div style={{
-      width: "100%",
-      maxWidth: 500,
-      minHeight: 220, // Ensures height is stable
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(255,255,255,0.01)'
-    }}>
-      <h2 style={styles.header}>Choose your favorite</h2>
-      <div style={styles.buttons}>
-        <button onClick={() => handleChoice(false)} style={styles.button}>
+    <ComparisonContainer>
+      <SorterHeader>Choose your favorite</SorterHeader>
+      <ButtonContainer>
+        <SorterButton onClick={() => handleChoice(false)}>
           {currentComparison.song}
-        </button>
-        <button onClick={() => handleChoice(true)} style={styles.button}>
+        </SorterButton>
+        <SorterButton onClick={() => handleChoice(true)}>
           {sortedList[currentComparison.index]}
-        </button>
-      </div>
-    </div>
+        </SorterButton>      </ButtonContainer>
+    </ComparisonContainer>
   ) : (
-    <div style={{
-      width: "100%",
-      maxWidth: 500,
-      minHeight: 220,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: 'rgba(255,255,255,0.01)'
-    }}>
-      <button onClick={() => setCurrentComparison(null)} style={styles.button}>
+    <ComparisonContainer>
+      <SorterButton onClick={() => setCurrentComparison(null)}>
         Start Sorting
-      </button>
-    </div>
+      </SorterButton>
+    </ComparisonContainer>
   );
 
   return (
-    <div style={styles.container}>
+    <SorterContainer>
       {mainContent}
-      {/* Action buttons always rendered below main content, with reserved space */}
-      <div style={{ minHeight: 48, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+      <ComparisonControls>
         {isSorted ? (
           <>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 8 }}>
-              <button
+              <SorterButton
                 onClick={downloadScreenshot}
-                style={styles.button}
                 disabled={isCapturing}
               >
                 {isCapturing ? "Capturing..." : "Download Image"}
-              </button>
-              <button onClick={shareOnTwitter} style={styles.button}>Share on Twitter</button>
+              </SorterButton>
+              <SorterButton onClick={shareOnTwitter}>Share on Twitter</SorterButton>
             </div>
-            <button onClick={() => window.location.reload()} style={styles.button}>
+            <SorterButton onClick={() => window.location.reload()}>
               Sort Again
-            </button>
+            </SorterButton>
           </>
         ) : (
-          // Invisible placeholder to reserve space for the Sort Again button
-          <button style={{...styles.button, visibility: 'hidden'}}>Sort Again</button>
+          <SorterButton style={{visibility: 'hidden'}}>Sort Again</SorterButton>
         )}
-      </div>
-    </div>
+      </ComparisonControls>
+    </SorterContainer>
   );
-};
-
-const styles = {
-  container: {
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    padding: "20px",
-    fontFamily: "'Roboto', sans-serif",
-  },
-  header: {
-    fontSize: "2rem",
-    marginBottom: "20px",
-    textAlign: "center",
-    fontFamily: "'Roboto', sans-serif",
-  },
-  buttons: {
-    display: "flex",
-    flexDirection: "column",
-    minHeight: "120px",
-    gap: "10px",
-    alignItems: "center",
-  },
-  button: {
-    padding: "10px 20px",
-    fontSize: "1rem",
-    cursor: "pointer",
-    backgroundColor: "black",
-    minHeight: "48px",
-    color: "white",
-    border: "none",
-    borderRadius: "5px",
-    transition: "background-color 0.3s ease",
-    fontFamily: "'Roboto', sans-serif",
-  },
 };
 
 export default BiasSorter;

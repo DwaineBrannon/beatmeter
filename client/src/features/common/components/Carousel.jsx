@@ -1,5 +1,11 @@
-import { useRef, useCallback, useState, useEffect } from "react";
-import { theme } from "../../../styles/theme"; // Import the theme
+import { useRef, useCallback, useState } from "react";
+import {
+  CarouselContainer,
+  GradientOverlay,
+  ScrollContainer,
+  CarouselContent,
+  NavigationButton
+} from './Carousel.styles';
 
 function Carousel({ items, renderItem }) {
   const scrollRef = useRef(null);
@@ -10,8 +16,8 @@ function Carousel({ items, renderItem }) {
   const [dragged, setDragged] = useState(false);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
-  const dragThreshold = 8; // px - Consider if this should be a theme variable if used elsewhere
-  const edgeThreshold = 100; // px - Consider if this should be a theme variable
+  const dragThreshold = 8;
+  const edgeThreshold = 100;
 
   const scroll = useCallback((direction) => {
     const scrollAmount = scrollRef.current.offsetWidth * 0.8;
@@ -26,19 +32,14 @@ function Carousel({ items, renderItem }) {
     setStartX(e.pageX - scrollRef.current.offsetLeft);
     setScrollLeft(scrollRef.current.scrollLeft);
     setDragged(false);
-    scrollRef.current.style.cursor = 'grabbing';
-    scrollRef.current.style.userSelect = 'none';
   };
 
   const handleMouseUp = () => {
     setIsDragging(false);
-    scrollRef.current.style.cursor = 'grab';
-    scrollRef.current.style.userSelect = 'auto';
   };
 
   const handleMouseMove = (e) => {
     if (!isDragging) {
-      // Check if mouse is near edges for arrow visibility
       const containerRect = containerRef.current.getBoundingClientRect();
       const mouseX = e.clientX - containerRect.left;
       
@@ -60,10 +61,6 @@ function Carousel({ items, renderItem }) {
     setIsDragging(false);
     setShowLeftArrow(false);
     setShowRightArrow(false);
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grab';
-      scrollRef.current.style.userSelect = 'auto';
-    }
   };
 
   const handleTouchStart = (e) => {
@@ -87,67 +84,20 @@ function Carousel({ items, renderItem }) {
     setIsDragging(false);
   };
 
-  useEffect(() => {
-    const carousel = scrollRef.current;
-    if (carousel) {
-      carousel.style.cursor = 'grab';
-    }
-  }, []);
-
-  // Wrap renderItem to pass dragged flag
   const wrappedRenderItem = (item) => renderItem(item, { dragged });
 
   return (
-    <div
+    <CarouselContainer
       ref={containerRef}
-      style={{
-        position: "relative",
-        width: "100%",
-        padding: `${theme.spacing.medium || '20px'} 0`, // Was "20px 0"
-        overflow: "hidden"
-      }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Gradient Overlays */}
-      <div style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: "100px", // Consider if this width should be themeable
-        background: `linear-gradient(to right, ${theme.colors.background.primary || 'rgba(25, 28, 28, 0.47)'}, rgba(181, 179, 179, 0))`, // Updated color
-        pointerEvents: "none",
-        zIndex: 1
-      }} />
-      <div style={{
-        position: "absolute",
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: "100px", // Consider if this width should be themeable
-        background: "linear-gradient(to left, rgba(255, 255, 255, 0), rgba(255,255,255,0))", // This seems to be transparent, check if theme color is needed
-        pointerEvents: "none",
-        zIndex: 1
-      }} />
+      <GradientOverlay left />
+      <GradientOverlay right />
 
-      <div
+      <ScrollContainer
         ref={scrollRef}
-        style={{
-          display: "flex",
-          overflowX: "auto",
-          scrollSnapType: "x mandatory",
-          scrollBehavior: "smooth",
-          msOverflowStyle: "none",
-          scrollbarWidth: "none",
-          WebkitOverflowScrolling: "touch",
-          gap: theme.spacing.large || "24px", // Was "24px"
-          padding: `0 ${theme.spacing.xlarge || '80px'}`, // Was "0 80px", consider if 80px should be a theme value
-          userSelect: "none",
-          WebkitScrollbar: { display: "none" },
-          justifyContent: "flex-start",
-          cursor: "grab"
-        }}
+        isDragging={isDragging}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
@@ -155,120 +105,30 @@ function Carousel({ items, renderItem }) {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <style>
-          {`
-            .carousel-content::-webkit-scrollbar {
-              display: none;
-            }
-          `}
-        </style>
-        <div className="carousel-content" style={{ display: "flex", gap: theme.spacing.large || "24px" }}> {/* Was "24px" */}
+        <CarouselContent>
           {items.map((item, idx) => {
-            // Assuming 'item' has a unique 'id' property
-            // If not, use a different unique property or 'idx' if items are static
             const key = item.id || idx;
             return <div key={key}>{wrappedRenderItem(item)}</div>;
           })}
-        </div>
-      </div>
+        </CarouselContent>
+      </ScrollContainer>
 
-      {/* Navigation Buttons */}
-      <button
+      <NavigationButton
+        left
+        show={showLeftArrow}
         onClick={() => scroll('left')}
-        style={{
-          position: "absolute",
-          left: theme.spacing.medium || "20px", // Was "20px"
-          top: "50%",
-          transform: "translateY(-50%)",
-          zIndex: 2,
-          background: theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)", // Example: Using a button theme
-          color: theme.buttons.secondary.text || "#fff", // Example: Using a button theme
-          border: "none",
-          borderRadius: "50%", // Consider theme.borderRadius if a circular button style is common
-          width: "48px", // Consider if this should be a theme variable (e.g., theme.sizing.iconButton)
-          height: "48px",
-          minWidth: "48px",
-          minHeight: "48px",
-          padding: 0,
-          cursor: "pointer",
-          opacity: showLeftArrow ? 0.9 : 0,
-          transition: "all 0.3s ease",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: theme.spacing.large || "24px", // Was "24px"
-          lineHeight: 1,
-          boxShadow: theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)", // Was "0 2px 8px rgba(0, 0, 0, 0.2)"
-          aspectRatio: "1",
-          pointerEvents: showLeftArrow ? "auto" : "none",
-          visibility: showLeftArrow ? "visible" : "hidden"
-        }}
-        onMouseEnter={(e) => {
-          if (showLeftArrow) {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-            e.currentTarget.style.background = theme.buttons.secondary.hoverBackground || "rgba(0, 0, 0, 0.9)"; // Example
-            e.currentTarget.style.boxShadow = theme.shadows.medium || "0 4px 12px rgba(0, 0, 0, 0.3)"; // Example
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (showLeftArrow) {
-            e.currentTarget.style.opacity = "0.9";
-            e.currentTarget.style.transform = "translateY(-50%)";
-            e.currentTarget.style.background = theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)"; // Example
-            e.currentTarget.style.boxShadow = theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)"; // Example
-          }
-        }}
-      >←</button>
+      >
+        ←
+      </NavigationButton>
 
-      <button
+      <NavigationButton
+        right
+        show={showRightArrow}
         onClick={() => scroll('right')}
-        style={{
-          position: "absolute",
-          right: theme.spacing.medium || "20px", // Was "20px"
-          top: "50%",
-          transform: "translateY(-50%)",
-          zIndex: 2,
-          background: theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)", // Example
-          color: theme.buttons.secondary.text || "#fff", // Example
-          border: "none",
-          borderRadius: "50%", // Consider theme.borderRadius
-          width: "48px", // Consider theme.sizing.iconButton
-          height: "48px",
-          minWidth: "48px",
-          minHeight: "48px",
-          padding: 0,
-          cursor: "pointer",
-          opacity: showRightArrow ? 0.9 : 0,
-          transition: "all 0.3s ease",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: theme.spacing.large || "24px", // Was "24px"
-          lineHeight: 1,
-          boxShadow: theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)", // Was "0 2px 8px rgba(0, 0, 0, 0.2)"
-          aspectRatio: "1",
-          pointerEvents: showRightArrow ? "auto" : "none",
-          visibility: showRightArrow ? "visible" : "hidden"
-        }}
-        onMouseEnter={(e) => {
-          if (showRightArrow) {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.transform = "translateY(-50%) scale(1.1)";
-            e.currentTarget.style.background = theme.buttons.secondary.hoverBackground || "rgba(0, 0, 0, 0.9)"; // Example
-            e.currentTarget.style.boxShadow = theme.shadows.medium || "0 4px 12px rgba(0, 0, 0, 0.3)"; // Example
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (showRightArrow) {
-            e.currentTarget.style.opacity = "0.9";
-            e.currentTarget.style.transform = "translateY(-50%)";
-            e.currentTarget.style.background = theme.buttons.secondary.background || "rgba(0, 0, 0, 0.8)"; // Example
-            e.currentTarget.style.boxShadow = theme.shadows.small || "0 2px 8px rgba(0, 0, 0, 0.2)"; // Example
-          }
-        }}
-      >→</button>
-    </div>
+      >
+        →
+      </NavigationButton>
+    </CarouselContainer>
   );
 }
 

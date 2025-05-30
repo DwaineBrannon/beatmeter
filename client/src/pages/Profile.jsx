@@ -11,7 +11,30 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { profileStyles as styles } from './Profile.styles'; // Updated import
+import {
+  ProfilePageContainer,
+  ProfileHeaderContainer,
+  ProfilePicture,
+  UserInfoContainer,
+  UserNameText,
+  UserBioText,
+  EditProfileButton,
+  FollowButton,
+  ProfileStatsContainer,
+  StatItemText,
+  ContentSectionContainer,
+  SectionTitleText,
+  ContentFiltersContainer,
+  FilterButton,
+  PostsListContainer,
+  PostItemContainer,
+  PostTitleText,
+  PostContentText,
+  MusicGridContainer,
+  AlbumItemContainer,
+  AlbumItemImage,
+  AlbumItemTitleText
+} from './Profile.styles';
 
 function Profile() {
   const { username } = useParams();
@@ -89,78 +112,72 @@ function Profile() {
   if (!userData) return <div>Loading...</div>;
 
   const isCurrentUser = isLoggedIn && username === loggedInUsername;
-
   return (
-    <div style={styles.profilePageContainer}>
-      <div style={styles.profileHeaderContainer}>
-        <img src={userData.profilePicture} alt={`${userData.name}'s profile`} style={styles.profilePicture} />
-        <div style={styles.userInfoContainer}>
-          <h2 style={styles.userNameText}>{userData.name}</h2>
-          <p style={styles.userBioText}>{userData.bio}</p>
+    <ProfilePageContainer>
+      <ProfileHeaderContainer>
+        <ProfilePicture src={userData.profilePicture} alt={`${userData.name}'s profile`} />
+        <UserInfoContainer>
+          <UserNameText>{userData.name}</UserNameText>
+          <UserBioText>{userData.bio}</UserBioText>
           {isCurrentUser ? (
-            <button style={styles.editProfileButton}>Edit Profile</button>
+            <EditProfileButton>Edit Profile</EditProfileButton>
           ) : (
-            <button 
-              style={{
-                ...styles.followButtonBase,
-                ...(userData.isFollowing ? styles.followButtonActiveState : styles.followButtonInactiveState)
-              }}
-            >
+            <FollowButton isFollowing={userData.isFollowing}>
               {userData.isFollowing ? "Unfollow" : "Follow"}
-            </button>
+            </FollowButton>
           )}
-        </div>
-      </div>
+        </UserInfoContainer>
+      </ProfileHeaderContainer>
 
-      <div style={styles.profileStatsContainer}>
-        <p style={styles.statItemText}>Followers: {userData.followersCount}</p>
-        <p style={styles.statItemText}>Following: {userData.followingCount}</p>
-      </div>
+      <ProfileStatsContainer>
+        <StatItemText>Followers: {userData.followersCount}</StatItemText>
+        <StatItemText>Following: {userData.followingCount}</StatItemText>
+      </ProfileStatsContainer>
 
-      <div style={styles.contentSectionContainer}> 
-        <h3 style={styles.sectionTitleText}>Posts</h3>
-        <div style={styles.contentFiltersContainer}>
-          <button 
-            style={filter === "All" ? {...styles.filterButton, ...styles.filterButtonActive} : styles.filterButton} 
+      <ContentSectionContainer> 
+        <SectionTitleText>Posts</SectionTitleText>
+        <ContentFiltersContainer>
+          <FilterButton 
+            isActive={filter === "All"} 
             onClick={() => setFilter("All")}
           >
             All
-          </button>
-          <button 
-            style={filter === "Reviews" ? {...styles.filterButton, ...styles.filterButtonActive} : styles.filterButton} 
+          </FilterButton>
+          <FilterButton 
+            isActive={filter === "Reviews"} 
             onClick={() => setFilter("Reviews")}
           >
             Reviews
-          </button>
-          <button 
-            style={filter === "Notes" ? {...styles.filterButton, ...styles.filterButtonActive} : styles.filterButton} 
+          </FilterButton>
+          <FilterButton 
+            isActive={filter === "Notes"} 
             onClick={() => setFilter("Notes")}
           >
             Notes
-          </button>
-        </div>
-        <div style={styles.postsListContainer}>
+          </FilterButton>
+        </ContentFiltersContainer>
+        <PostsListContainer>
           {filteredPosts.map((post) => (
-            <div key={post.id} style={styles.postItemContainer}>
-              <h4 style={styles.postTitleText}>{post.title}</h4>
-              <p style={styles.postContentText}>{post.content}</p>
-            </div>
+            <PostItemContainer key={post.id}>
+              <PostTitleText>{post.title}</PostTitleText>
+              <PostContentText>{post.content}</PostContentText>
+            </PostItemContainer>
           ))}
-        </div>
-      </div>
+        </PostsListContainer>
+      </ContentSectionContainer>
 
-      <div style={styles.contentSectionContainer}>
-        <h3 style={styles.sectionTitleText}>Music</h3>
-        <div style={styles.musicGridContainer}>
+      <ContentSectionContainer>
+        <SectionTitleText>Music</SectionTitleText>
+        <MusicGridContainer>
           {userData.loggedAlbums.map((album) => (
-            <div key={album.id} style={styles.albumItemContainer}>
-              <img src={album.cover} alt={album.title} style={styles.albumItemImage}/>
-              <p style={styles.albumItemTitleText}>{album.title}</p>
-            </div>
+            <AlbumItemContainer key={album.id}>
+              <AlbumItemImage src={album.cover} alt={album.title}/>
+              <AlbumItemTitleText>{album.title}</AlbumItemTitleText>
+            </AlbumItemContainer>
           ))}
-        </div>
-      </div>
-    </div>
+        </MusicGridContainer>
+      </ContentSectionContainer>
+    </ProfilePageContainer>
   );
 }
 

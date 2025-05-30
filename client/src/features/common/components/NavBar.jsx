@@ -1,6 +1,30 @@
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
-import "./NavBar.css";
+import {
+  NavBarRoot,
+  NavBarInner,
+  NavBarLeft,
+  NavBarLogo,
+  NavBarSearchForm,
+  NavBarSearchInput,
+  NavBarLinks,
+  NavBarLink,
+  NavBarLinkCTA,
+  NavBarDivider,
+  NavBarHamburger,
+  NavBarOverlay,
+  NavBarMobileMenu,
+  NavBarMobileLink,
+  NavBarMobileLinkCTA,
+  NavBarAvatarContainer,
+  NavBarAvatarBtn,
+  NavBarAvatarImg,
+  NavBarAvatarPlaceholder,
+  NavBarUserDropdown,
+  NavBarUserDropdownLink,
+  NavBarUserDropdownButton,
+  NavBarMobileAvatarContainer
+} from './NavBar.styles';
 
 // Accept isSignedIn, user, and onSignOut as props
 function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
@@ -35,102 +59,96 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [dropdownOpen]);
-
   // User avatar component
   const UserAvatar = (
-    <button
-      className="navbar-avatar-btn"
+    <NavBarAvatarBtn
       onClick={() => setDropdownOpen((open) => !open)}
       aria-label="Open user menu"
       type="button"
     >
       {avatarUrl ? (
-        <img src={avatarUrl} alt="User avatar" className="navbar-avatar-img" />
+        <NavBarAvatarImg src={avatarUrl} alt="User avatar" />
       ) : (
-        <span className="navbar-avatar-placeholder">{userInitials}</span>
+        <NavBarAvatarPlaceholder>{userInitials}</NavBarAvatarPlaceholder>
       )}
-    </button>
+    </NavBarAvatarBtn>
   );
 
   // User dropdown menu
   const UserDropdown = (
-    <div className="navbar-user-dropdown" ref={dropdownRef}>
-      <Link to="/settings" className="navbar-user-dropdown-link" onClick={() => setDropdownOpen(false)}>Settings</Link>
-      <Link to="/edit-profile" className="navbar-user-dropdown-link" onClick={() => setDropdownOpen(false)}>Edit Profile</Link>
-      <a href="#signout" className="navbar-user-dropdown-link navbar-user-dropdown-logout" onClick={handleSignOut}>Log Out</a>
-    </div>
+    <NavBarUserDropdown ref={dropdownRef}>
+      <NavBarUserDropdownLink to="/settings" onClick={() => setDropdownOpen(false)}>Settings</NavBarUserDropdownLink>
+      <NavBarUserDropdownLink to="/edit-profile" onClick={() => setDropdownOpen(false)}>Edit Profile</NavBarUserDropdownLink>
+      <NavBarUserDropdownButton isLogout onClick={handleSignOut}>Log Out</NavBarUserDropdownButton>
+    </NavBarUserDropdown>
   );
-
   return (
-    <nav className="navbar-root">
-      <div className="navbar-inner">
+    <NavBarRoot>
+      <NavBarInner>
         {/* Left section with logo and search */}
-        <div className="navbar-left">
-          <Link to="/" className="navbar-logo">
+        <NavBarLeft>
+          <NavBarLogo to="/">
             beatmeter
-          </Link>
-          <form onSubmit={handleSearch} className="navbar-search-form">
-            <input
+          </NavBarLogo>
+          <NavBarSearchForm onSubmit={handleSearch}>
+            <NavBarSearchInput
               type="search"
               placeholder="Search Music..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="navbar-search-input"
             />
-          </form>
-        </div>
-
-        {/* Hamburger icon for mobile */}
-        <button
+          </NavBarSearchForm>
+        </NavBarLeft>        {/* Hamburger icon for mobile */}
+        <NavBarHamburger
           onClick={() => setMobileOpen((open) => !open)}
-          className={`navbar-hamburger${mobileOpen ? " open" : ""}`}
+          $isOpen={mobileOpen}
           aria-label="Open navigation menu"
         >
           <span />
           <span />
           <span />
-        </button>
+        </NavBarHamburger>
 
         {/* Desktop nav links */}
-        <div className="navbar-links">
-          <Link to="/music" className="navbar-link">Music</Link>
-          <Link to="/lists" className="navbar-link">Lists</Link>
-          <Link to="/profile" className="navbar-link">Profile</Link>
-          <div className="navbar-divider" />
+        <NavBarLinks>
+          <NavBarLink to="/music">Music</NavBarLink>
+          <NavBarLink to="/lists">Lists</NavBarLink>
+          <NavBarLink to="/profile">Profile</NavBarLink>
+          <NavBarDivider />
           {isSignedIn ? (
-            <div className="navbar-avatar-container">
+            <NavBarAvatarContainer>
               {UserAvatar}
               {dropdownOpen && UserDropdown}
-            </div>
+            </NavBarAvatarContainer>
           ) : (
             <>
-              <Link to="/login" className="navbar-link">Sign In</Link>
-              <Link to="/create-account" className="navbar-link navbar-link-cta">Create Account</Link>
+              <NavBarLink to="/login">Sign In</NavBarLink>
+              <NavBarLinkCTA to="/create-account">Create Account</NavBarLinkCTA>
             </>
           )}
-        </div>
+        </NavBarLinks>
 
         {/* Overlay for mobile menu */}
-        {mobileOpen && <div className="navbar-overlay" onClick={() => setMobileOpen(false)} />}
+        {mobileOpen && <NavBarOverlay onClick={() => setMobileOpen(false)} />}
 
         {/* Mobile menu slide-in */}
-        <div className={`navbar-mobile-menu${mobileOpen ? " open" : ""}`}>
+        <NavBarMobileMenu open={mobileOpen}>
           {isSignedIn && (
-            <div className="navbar-mobile-avatar-container">
+            <NavBarMobileAvatarContainer>
               {UserAvatar}
               {dropdownOpen && UserDropdown}
-            </div>
+            </NavBarMobileAvatarContainer>
           )}
-          <Link to="/music" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Music</Link>
-          <Link to="/lists" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Lists</Link>
-          <Link to="/profile" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Profile</Link>
+          <NavBarMobileLink to="/music" onClick={() => setMobileOpen(false)}>Music</NavBarMobileLink>
+          <NavBarMobileLink to="/lists" onClick={() => setMobileOpen(false)}>Lists</NavBarMobileLink>
+          <NavBarMobileLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavBarMobileLink>
           {!isSignedIn && <>
-            <Link to="/login" className="navbar-mobile-link" onClick={() => setMobileOpen(false)}>Sign In</Link>
-            <Link to="/create-account" className="navbar-mobile-link navbar-mobile-link-cta" onClick={() => setMobileOpen(false)}>Create Account</Link>
+            <NavBarMobileLink to="/login" onClick={() => setMobileOpen(false)}>Sign In</NavBarMobileLink>
+            <NavBarMobileLinkCTA to="/create-account" onClick={() => setMobileOpen(false)}>Create Account</NavBarMobileLinkCTA>
           </>}
-        </div>
-      </div>
-    </nav>
+        </NavBarMobileMenu>
+      </NavBarInner>
+    </NavBarRoot>
   );
 }
 
