@@ -4,6 +4,8 @@ import Home from '../../pages/Home';
 import Profile from '../../pages/Profile';
 import Sorter from '../../pages/BiasSorter';
 import Login from '../../pages/Login';
+import Lists from '../../pages/Lists';
+import Music from '../../pages/Music.jsx';
 
 // Route configuration with metadata
 export const routes = [
@@ -34,6 +36,20 @@ export const routes = [
     title: 'Login | BeatMeter',
     isPublic: true,
     description: 'Sign in to BeatMeter'
+  },
+  {
+    path: '/lists',
+    element: Lists,
+    title: 'Playlists',
+    isPublic: true,
+    description: 'Explore user-generated playlists and recommendations'
+  },
+  {
+    path: '/Music',
+    element: Music,
+    title: 'Music | BeatMeter',
+    isPublic: true,
+    description: 'Discover and manage your music collections'
   }
 ];
 

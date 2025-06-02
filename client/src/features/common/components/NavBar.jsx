@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import {
   NavBarRoot,
@@ -32,13 +32,16 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
   const avatarUrl = user.avatarUrl || null;
   const userInitials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) : 'U';
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log("Searching for:", searchQuery);
+    if (searchQuery.trim()) {
+      // Navigate to /music with the search query as a URL parameter
+      navigate(`/music?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   // Handle sign out click

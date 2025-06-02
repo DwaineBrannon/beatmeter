@@ -4,74 +4,120 @@ import styled from 'styled-components';
 const AlbumCardContainer = styled.div`
   display: flex;
   flex-direction: column;
-  align-items: center;
-  background: none;
-  box-shadow: none;
+  align-items: ${props => props.variant === 'grid' ? 'stretch' : 'center'};
+  background: ${props => props.variant === 'grid' ? 'transparent' : 'none'};
+  box-shadow: ${props => props.variant === 'grid' 
+    ? '0 4px 12px rgba(0, 0, 0, 0.1)' 
+    : 'none'};
   border: none;
-  margin: 0 12px;
+  border-radius: ${props => props.variant === 'grid' 
+    ? '12px' 
+    : props.theme.borderRadius.large || '16px'};
+  margin: ${props => props.variant === 'grid' ? '0' : '0 12px'};
+  padding: ${props => props.variant === 'grid' ? '0' : '0'};
   cursor: pointer;
+  overflow: ${props => props.variant === 'grid' ? 'hidden' : 'visible'};
+  transition: ${props => props.variant === 'grid' 
+    ? 'transform 0.3s, box-shadow 0.3s' 
+    : 'none'};
+    
+  ${props => props.variant === 'grid' && `
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+  `}
 `;
 
 const AlbumImage = styled.img`
-  width: 160px;
-  height: 160px;
-  border-radius: ${props => props.theme.borderRadius.large || '16px'};
-  box-shadow: ${props => props.hovered
-    ? '0 0 24px 4px #48BB78'
-    : '0 4px 16px 0 rgba(128, 90, 213, 0.15)'};
+  width: ${props => props.variant === 'grid' ? '100%' : '160px'};
+  height: ${props => props.variant === 'grid' ? '250px' : '160px'};
+  border-radius: ${props => props.variant === 'grid' 
+    ? '0' 
+    : props.theme.borderRadius.large || '16px'};
+  box-shadow: ${props => props.variant === 'grid' 
+    ? 'none'
+    : props.hovered
+      ? '0 0 24px 4px #48BB78'
+      : '0 4px 16px 0 rgba(128, 90, 213, 0.15)'};
   transition: box-shadow 0.3s, transform 0.3s;
   object-fit: cover;
 `;
 
 const AlbumInfo = styled.div`
-  margin-top: 12px;
-  text-align: center;
+  margin-top: ${props => props.variant === 'grid' ? '0' : '12px'};
+  padding: ${props => props.variant === 'grid' ? '15px' : '0'};
+  text-align: ${props => props.variant === 'grid' ? 'left' : 'center'};
+  width: 100%;
 `;
 
-const AlbumTitle = styled.div`
-  font-weight: 700;
-  color: ${props => props.theme.colors.text.primary || '#fff'};
-  font-size: 18px;
+const AlbumTitle = styled.h3`
+  font-weight: ${props => props.variant === 'grid' ? '600' : '700'};
+  color: ${props => props.variant === 'grid' 
+    ? props.theme.colors.text.primary || '#fff'
+    : props.theme.colors.text.primary || '#fff'};
+  font-size: ${props => props.variant === 'grid' ? '1.1rem' : '18px'};
   font-family: 'Inter', system-ui, sans-serif;
-  text-shadow: ${props => props.hovered
-    ? '0 2px 8px #805AD5, 0 4px 16px #48BB78'
-    : 'none'};
-  letter-spacing: -0.5px;
+  text-shadow: ${props => props.variant === 'grid' 
+    ? 'none'
+    : props.hovered
+      ? '0 2px 8px #805AD5, 0 4px 16px #48BB78'
+      : 'none'};
+  letter-spacing: ${props => props.variant === 'grid' ? 'normal' : '-0.5px'};
   transition: text-shadow 0.3s;
+  margin: ${props => props.variant === 'grid' ? '0 0 8px 0' : '0'};
+  overflow: ${props => props.variant === 'grid' ? 'hidden' : 'visible'};
+  text-overflow: ${props => props.variant === 'grid' ? 'ellipsis' : 'unset'};
+  white-space: ${props => props.variant === 'grid' ? 'nowrap' : 'normal'};
 `;
 
-const AlbumArtist = styled.div`
-  color: ${props => props.theme.colors.text.primary || '#fff'};
-  font-size: 15px;
+const AlbumArtist = styled.p`
+  color: ${props => props.variant === 'grid' 
+    ? props.theme.colors.text.secondary || 'rgba(255,255,255,0.7)'
+    : props.theme.colors.text.primary || '#fff'};
+  font-size: ${props => props.variant === 'grid' ? '0.9rem' : '15px'};
   font-family: 'Inter', system-ui, sans-serif;
-  text-shadow: ${props => props.hovered
-    ? '0 2px 8px #48BB78, 0 4px 16px #805AD5'
-    : 'none'};
+  text-shadow: ${props => props.variant === 'grid' 
+    ? 'none'
+    : props.hovered
+      ? '0 2px 8px #48BB78, 0 4px 16px #805AD5'
+      : 'none'};
   opacity: 0.95;
   transition: text-shadow 0.3s;
+  margin: ${props => props.variant === 'grid' ? '0' : '0'};
+  overflow: ${props => props.variant === 'grid' ? 'hidden' : 'visible'};
+  text-overflow: ${props => props.variant === 'grid' ? 'ellipsis' : 'unset'};
+  white-space: ${props => props.variant === 'grid' ? 'nowrap' : 'normal'};
 `;
 
-function AlbumCard({ album, onClick }) {
+function AlbumCard({ album, onClick, variant = 'carousel' }) {
   const [hovered, setHovered] = useState(false);
+
+  // Handle different data structures - Spotify API vs custom data
+  const imageUrl = album.img || (album.images && album.images[0]?.url) || 'https://via.placeholder.com/300';
+  const title = album.title || album.name;
+  const artist = album.artist || (album.artists ? album.artists.map(a => a.name).join(', ') : '');
 
   return (
     <AlbumCardContainer
+      variant={variant}
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <AlbumImage
-        src={album.img}
-        alt={album.title}
+        variant={variant}
+        src={imageUrl}
+        alt={title}
         draggable={false}
         hovered={hovered}
       />
-      <AlbumInfo>
-        <AlbumTitle hovered={hovered}>
-          {album.title}
+      <AlbumInfo variant={variant}>
+        <AlbumTitle variant={variant} hovered={hovered}>
+          {title}
         </AlbumTitle>
-        <AlbumArtist hovered={hovered}>
-          {album.artist}
+        <AlbumArtist variant={variant} hovered={hovered}>
+          {artist}
         </AlbumArtist>
       </AlbumInfo>
     </AlbumCardContainer>

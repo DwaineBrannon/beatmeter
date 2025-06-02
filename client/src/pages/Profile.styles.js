@@ -190,4 +190,57 @@ export const AlbumItemTitleText = styled.h4`
   font-weight: 500;
 `;
 
+// Music List styles for horizontal album items
+export const MusicListContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${props => props.theme.spacing.medium || '15px'};
+`;
+
+export const MusicListItemContainer = styled.div`
+  display: flex;
+  align-items: center;
+  padding: ${props => props.theme.spacing.medium || '15px'};
+  border: 1px solid ${props => props.theme.colors.background.accent || '#ddd'};
+  border-radius: ${props => props.theme.borderRadius.medium || '8px'};
+  background-color: ${props => props.theme.colors.background.primary || '#fff'};
+  box-shadow: ${props => props.theme.shadows.small};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: ${props => props.theme.shadows.medium || '0 4px 8px rgba(0,0,0,0.1)'};
+    transform: translateY(-2px);
+  }
+`;
+
+export const MusicListAlbumImage = styled.img`
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: ${props => props.theme.borderRadius.small || '4px'};
+  margin-right: ${props => props.theme.spacing.medium || '15px'};
+  flex-shrink: 0;
+`;
+
+export const MusicListAlbumInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+`;
+
+export const MusicListAlbumTitle = styled.h4`
+  font-size: 1.1rem;
+  color: ${props => props.theme.colors.text.primary || '#333'};
+  font-weight: 600;
+  margin: 0 0 ${props => props.theme.spacing.small || '5px'} 0;
+`;
+
+export const MusicListAlbumArtist = styled.p`
+  font-size: 0.95rem;
+  color: ${props => props.theme.colors.text.secondary || '#666'};
+  margin: 0;
+  font-weight: 400;
+`;
+
 // Legacy styles removed - now using styled-components above

@@ -33,17 +33,23 @@ import {
   MusicGridContainer,
   AlbumItemContainer,
   AlbumItemImage,
-  AlbumItemTitleText
+  AlbumItemTitleText,
+  MusicListContainer,
+  MusicListItemContainer,
+  MusicListAlbumImage,
+  MusicListAlbumInfo,
+  MusicListAlbumTitle,
+  MusicListAlbumArtist
 } from './Profile.styles';
 
 function Profile() {
   const { username } = useParams();
-  const navigate = useNavigate();
-  const [userData, setUserData] = useState(null);
+  const navigate = useNavigate();  const [userData, setUserData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [musicView, setMusicView] = useState("Grid"); // "Grid" or "List"
 
-  // Simulate login state for development
+  // Simulated login state for development
   const [isLoggedIn] = useState(true); // Change to false to simulate logged-out state
   const loggedInUsername = "testUser"; // Replace with the logged-in user's username
 
@@ -78,8 +84,7 @@ function Profile() {
         }
       }
 
-      fetchData();
-    } else {
+      fetchData();    } else {
       // Simulate mock data for development
       const mockUserData = {
         name: "GagaLover",
@@ -87,10 +92,11 @@ function Profile() {
         bio: "Gaga is Queen. Wish she wasn't a zionist.. :(",
         followersCount: 69,
         followingCount: 420,
-        isFollowing: false,
-        loggedAlbums: [
-          { id: 1, title: "Mock Album 1", cover: "https://via.placeholder.com/100" },
-          { id: 2, title: "Mock Album 2", cover: "https://via.placeholder.com/100" },
+        isFollowing: false,        loggedAlbums: [
+          { id: 1, title: "Chromatica", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
+          { id: 2, title: "Born This Way", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
+          { id: 3, title: "The Fame Monster", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
+          { id: 4, title: "ARTPOP", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
         ],
       };
 
@@ -164,18 +170,45 @@ function Profile() {
             </PostItemContainer>
           ))}
         </PostsListContainer>
-      </ContentSectionContainer>
-
-      <ContentSectionContainer>
-        <SectionTitleText>Music</SectionTitleText>
-        <MusicGridContainer>
-          {userData.loggedAlbums.map((album) => (
-            <AlbumItemContainer key={album.id}>
-              <AlbumItemImage src={album.cover} alt={album.title}/>
-              <AlbumItemTitleText>{album.title}</AlbumItemTitleText>
-            </AlbumItemContainer>
-          ))}
-        </MusicGridContainer>
+      </ContentSectionContainer>      <ContentSectionContainer>
+        <SectionTitleText>Music</SectionTitleText>        <ContentFiltersContainer>
+          <FilterButton 
+            isActive={musicView === "Grid"} 
+            onClick={() => setMusicView("Grid")}
+          >
+            Music
+          </FilterButton>
+          <FilterButton 
+            isActive={musicView === "List"} 
+            onClick={() => setMusicView("List")}
+          >
+            Want to Listen
+          </FilterButton>
+        </ContentFiltersContainer>        {musicView === "Grid" ? (
+          <MusicListContainer>
+            {userData.loggedAlbums.map((album) => (
+              <MusicListItemContainer key={album.id}>
+                <MusicListAlbumImage src={album.cover} alt={album.title}/>
+                <MusicListAlbumInfo>
+                  <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
+                  <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
+                </MusicListAlbumInfo>
+              </MusicListItemContainer>
+            ))}
+          </MusicListContainer>
+        ) : (
+          <MusicListContainer>
+            {userData.loggedAlbums.map((album) => (
+              <MusicListItemContainer key={album.id}>
+                <MusicListAlbumImage src={album.cover} alt={album.title}/>
+                <MusicListAlbumInfo>
+                  <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
+                  <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
+                </MusicListAlbumInfo>
+              </MusicListItemContainer>
+            ))}
+          </MusicListContainer>
+        )}
       </ContentSectionContainer>
     </ProfilePageContainer>
   );
