@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom'; // Add this import
 
 const AlbumCardContainer = styled.div`
   display: flex;
@@ -92,16 +93,29 @@ const AlbumArtist = styled.p`
 
 function AlbumCard({ album, onClick, variant = 'carousel' }) {
   const [hovered, setHovered] = useState(false);
+  const navigate = useNavigate(); // Initialize navigate
 
   // Handle different data structures - Spotify API vs custom data
   const imageUrl = album.img || (album.images && album.images[0]?.url) || 'https://via.placeholder.com/300';
   const title = album.title || album.name;
   const artist = album.artist || (album.artists ? album.artists.map(a => a.name).join(', ') : '');
+  const albumId = album.id; // Assuming album.id is the unique identifier
+
+  const handleCardClick = () => {
+    if (albumId) {
+      navigate(`/album/${albumId}`);
+    } else {
+      console.warn('Album ID is missing, cannot navigate to details page.');
+    }
+    if (onClick) {
+      onClick(); // Call original onClick if it exists
+    }
+  };
 
   return (
     <AlbumCardContainer
       variant={variant}
-      onClick={onClick}
+      onClick={handleCardClick} // Updated onClick handler
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >

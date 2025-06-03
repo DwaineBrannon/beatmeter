@@ -6,6 +6,7 @@ import Sorter from '../../pages/BiasSorter';
 import Login from '../../pages/Login';
 import Lists from '../../pages/Lists';
 import Music from '../../pages/Music.jsx';
+import AlbumDetailsPage from '../../pages/AlbumDetailsPage'; // Add this import
 
 // Route configuration with metadata
 export const routes = [
@@ -24,7 +25,8 @@ export const routes = [
     description: 'Sort and rank your favorite songs'
   },
   {
-    path: '/profile', // Changed from '/profile/:username'
+    // This will need to be a dynamic route in the future to handle user profiles.
+    path: '/profile', 
     element: Profile,
     title: 'Profile | BeatMeter',
     isPublic: true,
@@ -50,6 +52,13 @@ export const routes = [
     title: 'Music | BeatMeter',
     isPublic: true,
     description: 'Discover and manage your music collections'
+  },
+  {
+    path: '/album/:albumId', // New route for album details
+    element: AlbumDetailsPage,
+    title: 'Album Details | BeatMeter',
+    isPublic: true,
+    description: 'View album details and ratings'
   }
 ];
 
@@ -57,7 +66,7 @@ export const routes = [
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: PageElement, title }) => (
+      {routes.map(({ path, element: ElementComponent, title }) => (
         <Route 
           key={path} 
           path={path} 
@@ -65,7 +74,7 @@ export const generateRoutes = () => {
             <>
               {/* Update page title when route changes */}
               <title>{title}</title>
-              <PageElement />
+              <ElementComponent />
             </>
           } 
         />
