@@ -72,8 +72,7 @@ function Home() {
             Explore Top Music
           </HeroButton>
         </HeroContent>
-      </Hero>      <SectionTitle>Top Albums</SectionTitle>
-      <CarouselContainer>
+      </Hero>      <SectionTitle>Top Albums</SectionTitle>      <CarouselContainer>
         <Carousel
           items={albums}
           renderItem={(album, { dragged }) => (
@@ -86,16 +85,14 @@ function Home() {
                   e.stopPropagation();
                   return;
                 }
-                // Handle album click (e.g., open album details)
-                alert(`Clicked ${album.title}`);
+                // AlbumCard component will handle navigation internally
               }}
             />
           )}
         />
       </CarouselContainer>
 
-      <SongsSection>Top Songs</SongsSection>
-      <CarouselContainer>
+      <SongsSection>Top Songs</SongsSection>      <CarouselContainer>
         <Carousel
           items={songs}
           renderItem={(song, { dragged }) => (
@@ -107,8 +104,12 @@ function Home() {
                   e.stopPropagation();
                   return;
                 }
-                // Handle song click (e.g., play song or open details)
-                alert(`Clicked ${song.title}`);
+                // If the song is part of an album, navigate to that album
+                if (song.albumId) {
+                  window.location.href = `/album/${song.albumId}`;
+                } else {
+                  console.log(`Song clicked: ${song.title}, but no album ID available`);
+                }
               }}
             />
           )}

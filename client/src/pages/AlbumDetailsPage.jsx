@@ -1,70 +1,35 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import styled from 'styled-components';
-import StarRating from '../features/music/components/StarRating'; // Import StarRating
-import SongItem from '../features/music/components/SongItem'; // Import SongItem
+// import styled from 'styled-components'; // No longer needed here
+import StarRating from '../features/music/components/StarRating';
+import SongItem from '../features/music/components/SongItem';
+import {
+  PageContainer,
+  AlbumTitle,
+  AlbumArtist,
+  AlbumRatingSection,
+  TracksList
+} from './AlbumDetailsPage.styles'; // Import styled components
 
-// Basic styled components for layout - you can expand these or use existing ones
-const PageContainer = styled.div`
-  padding: 20px;
-  color: ${props => props.theme.colors.text.primary || '#fff'};
-`;
 
-const AlbumTitle = styled.h1`
-  font-size: 2.5rem;
-  margin-bottom: 10px;
-`;
-
-const AlbumArtist = styled.h2`
-  font-size: 1.5rem;
-  margin-bottom: 20px;
-  color: ${props => props.theme.colors.text.secondary || 'rgba(255,255,255,0.7)'};
-`;
-
-const AlbumRatingSection = styled.div`
-  margin-top: 20px;
-  margin-bottom: 30px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-
-  h3 {
-    margin-bottom: 10px;
-    font-size: 1.2rem;
-  }
-`;
-
-const TracksList = styled.ul`
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
-`;
 
 // Placeholder for album data - replace with actual data fetching
 const fetchAlbumDetails = async (albumId) => {
   // In a real app, you would fetch this from an API
   console.log(`Fetching details for album ID: ${albumId}`);
-  // Simulating an API call with a delay
-  await new Promise(resolve => setTimeout(resolve, 500)); 
-
-  // Example album data structure (adjust to your needs)
-  if (albumId === "1") { // Example ID
-    return {
-      id: "1",
-      name: "Example Album Title",
-      artistName: "Example Artist Name",
-      imageUrl: "https://via.placeholder.com/300",
-      tracks: [
-        { id: "t1", title: "Track 1", duration: "3:45" },
-        { id: "t2", title: "Track 2", duration: "4:15" },
-        { id: "t3", title: "Track 3", duration: "2:50" },
-      ],
-      // Simulate pre-existing ratings if needed for testing
-      // initialAlbumRating: 4, 
-      // initialSongRatings: { t1: 5, t2: 3 }
-    };
+  
+  // Fetch from the backend API
+  try {
+    const response = await fetch(`/api/music/albums/${albumId}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    return data; // The backend should return data in the expected format
+  } catch (error) {
+    console.error("Could not fetch album details:", error);
+    return null; // Or handle error appropriately
   }
-  return null; // Or handle not found appropriately
 };
 
 function AlbumDetailsPage() {
@@ -72,10 +37,9 @@ function AlbumDetailsPage() {
   const [album, setAlbum] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-
   // State for ratings
   const [songRatings, setSongRatings] = React.useState({}); // E.g., { songId1: rating, songId2: rating }
-  const [albumRating, setAlbumRating] = React.useState(0);
+  const [albumRating, setAlbumRating] = React.useState(null);
 
   React.useEffect(() => {
     const loadAlbumData = async () => {
@@ -85,7 +49,7 @@ function AlbumDetailsPage() {
         if (details) {
           setAlbum(details);
           // Initialize ratings if they come from the backend/data source
-          setAlbumRating(details.initialAlbumRating || 0);
+          setAlbumRating(details.initialAlbumRating || null);
           setSongRatings(details.initialSongRatings || {});
         } else {
           setError('Album not found');
@@ -102,23 +66,23 @@ function AlbumDetailsPage() {
       loadAlbumData();
     }
   }, [albumId]);
-
   // Calculate average album rating from song ratings
   React.useEffect(() => {
     if (album && album.tracks && album.tracks.length > 0) {
-      const ratedSongs = Object.values(songRatings).filter(rating => rating > 0);
+      const ratedSongs = Object.values(songRatings).filter(rating => rating !== null && rating > 0);
       if (ratedSongs.length > 0) {
         const totalRating = ratedSongs.reduce((sum, rating) => sum + rating, 0);
         const average = totalRating / ratedSongs.length;
-        // Set album rating based on average, but allow user override later
-        // For now, we directly set it. You might want to only set it if albumRating is 0 or not user-set.
-        setAlbumRating(Math.round(average * 2) / 2); // Round to nearest 0.5
-      } else {
-        // If no songs are rated, you might want to reset album rating or keep user's explicit rating
-        // setAlbumRating(0); // Or keep existing albumRating
+        // Only set album rating automatically if user hasn't rated it manually
+        // This allows the user's explicit rating to override the calculated average
+        if (albumRating === null) {
+          setAlbumRating(Math.round(average * 2) / 2); // Round to nearest 0.5
+        }
+      } else if (albumRating === 0) { // Only reset to null if it was previously 0
+        setAlbumRating(null); // No ratings yet
       }
     }
-  }, [songRatings, album]);
+  }, [songRatings, album, albumRating]);
 
   const handleRateSong = (songId, rating) => {
     setSongRatings(prevRatings => ({
@@ -164,11 +128,10 @@ function AlbumDetailsPage() {
 
       <h3>Tracks:</h3>
       <TracksList>
-        {album.tracks.map(track => (
-          <SongItem
+        {album.tracks.map(track => (          <SongItem
             key={track.id}
             track={track}
-            currentRating={songRatings[track.id] || 0}
+            currentRating={songRatings[track.id] !== undefined ? songRatings[track.id] : null}
             onRateSong={handleRateSong}
           />
         ))}

@@ -7,7 +7,7 @@ const SongItemContainer = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid ${props => props.theme.colors.ui.secondary || '#444'};
+  border-bottom: 1px solid ${props => props.theme.colors.surface.secondary || '#444'};
 
   &:last-child {
     border-bottom: none;
@@ -46,6 +46,7 @@ const SongItem = ({ track, currentRating, onRateSong }) => {
         initialRating={currentRating}
         onRate={(rating) => onRateSong(track.id, rating)}
         size={20} // Adjust size as needed
+        showClearOption={true} // Allow users to clear ratings
       />
     </SongItemContainer>
   );

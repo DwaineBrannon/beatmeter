@@ -125,9 +125,7 @@ const getTopSongs = async (req, res) => {
       title: item.name, // This is the album name, we need to get the first track
       artist: item.artists.map((a) => a.name).join(", "),
       img: item.images[0]?.url,
-    }));
-
-    // Get the first track for each album to display as a song
+    }));    // Get the first track for each album to display as a song
     const songsWithTracks = await Promise.all(songs.map(async (song) => {
       try {
         const albumTracksRes = await axios.get(
@@ -143,7 +141,8 @@ const getTopSongs = async (req, res) => {
         return {
           ...song,
           title: firstTrack.name, // Use the track name instead of album name
-          artist: firstTrack.artists.map(a => a.name).join(", ")
+          artist: firstTrack.artists.map(a => a.name).join(", "),
+          albumId: song.id // Add the albumId explicitly so songs can link to their albums
         };
       } catch (err) {
         console.error(`Error fetching tracks for album ${song.id}:`, err);
@@ -212,9 +211,57 @@ const getTopAlbums = async (req, res) => {
   }
 };
 
+// Get a specific album by ID
+const getAlbumById = async (req, res) => {
+  try {
+    const { albumId } = req.params;
+    const token = await getSpotifyToken();
+
+    const response = await axios.get(
+      `https://api.spotify.com/v1/albums/${albumId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+
+    // Transform the response to match the structure expected by the frontend
+    const albumDetails = {
+      id: response.data.id,
+      name: response.data.name,
+      artistName: response.data.artists.map(artist => artist.name).join(', '),
+      imageUrl: response.data.images[0]?.url,
+      tracks: response.data.tracks.items.map(track => ({
+        id: track.id,
+        title: track.name,
+        duration: millisToMinutesAndSeconds(track.duration_ms), // Convert duration
+        // Add other track details if needed
+      })),
+      // Add other album details if needed (e.g., release date, genres)
+    };
+
+    res.json(albumDetails);
+  } catch (error) {
+    console.error(`Error fetching album ${req.params.albumId}:`, error);
+    res.status(500).json({ 
+      error: 'Failed to fetch album details',
+      message: error.message 
+    });
+  }
+};
+
+// Helper function to convert milliseconds to mm:ss format
+function millisToMinutesAndSeconds(millis) {
+  const minutes = Math.floor(millis / 60000);
+  const seconds = ((millis % 60000) / 1000).toFixed(0);
+  return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+}
+
 module.exports = {
   getNewReleases,
   searchMusic,
   getTopSongs,
-  getTopAlbums
+  getTopAlbums,
+  getAlbumById // Export the new function
 };

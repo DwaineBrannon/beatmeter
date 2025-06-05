@@ -151,15 +151,11 @@ const Music = () => {
           <LoadingSpinner>Loading...</LoadingSpinner>
         ) : (
           <>            <GridContainer>
-              {displayData.map((album) => (
-                <AlbumCard 
+              {displayData.map((album) => (              <AlbumCard 
                   key={album.id}
                   album={album}
                   variant="grid"
-                  onClick={() => {
-                    // Handle album click (e.g., open album details, start bias sorter)
-                    alert(`Clicked ${album.name || album.title}`);
-                  }}
+                  // The AlbumCard component will handle navigation internally
                 />
               ))}
             </GridContainer>

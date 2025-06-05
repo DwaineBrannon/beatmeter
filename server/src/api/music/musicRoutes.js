@@ -8,13 +8,16 @@
 
 const express = require('express');
 const router = express.Router();
-const { getNewReleases, searchMusic, getTopSongs, getTopAlbums } = require('./musicController');
+const { getNewReleases, searchMusic, getTopSongs, getTopAlbums, getAlbumById } = require('./musicController');
 
 // Get new releases (for Music page default view)
 router.get('/new-releases', getNewReleases);
 
 // Search for music (for Music page search functionality)
 router.get('/search', searchMusic);
+
+// Get details for a specific album
+router.get('/albums/:albumId', getAlbumById); // New route for specific album
 
 // Get top songs (for legacy API compatibility)
 router.get('/top-songs', getTopSongs);

@@ -20,7 +20,8 @@ export const MusicHeader = styled.h1`
   font-size: 2.5rem;
   text-align: center;
   margin-bottom: 30px;
-  color: #333;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 2px 2px 4px rgba(131, 131, 131, 0.5);
 `;
 
 export const SearchContainer = styled.div`
