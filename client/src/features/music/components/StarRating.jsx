@@ -9,12 +9,12 @@ const StarContainer = styled.div`
 
 const Star = styled(FaStar)`
   cursor: ${props => (props.readOnly ? 'default' : 'pointer')};
-  color: ${props => (props.filled ? (props.theme.colors.accent || '#ffc107') : (props.theme.colors.text.secondary || '#e4e5e9'))};
+  color: ${props => (props.filled ? (props.theme.colors.star?.filled || '#ffc107') : (props.theme.colors.text.disabled || '#e4e5e9'))};
   margin-right: 4px;
   transition: color 0.2s;
 
   &:hover {
-    color: ${props => (props.readOnly ? '' : (props.theme.colors.secondary || '#e0a800'))};
+    color: ${props => (props.readOnly ? '' : (props.theme.colors.star?.hover || '#e0a800'))};
   }
 `;
 
@@ -74,10 +74,9 @@ const StarRating = ({
         const currentRating = index + 1;
         // If rating is null (unrated) or undefined, don't fill any stars unless hovering
         const isFilled = rating !== null && currentRating <= (hover || rating);
-        
-        // Determine star color based on props and theme
-        let starFillColor = readOnly ? (props => props.theme.colors.accent || '#ffc107') : (color || (props => props.theme.colors.accent || '#ffc107'));
-        let starHoverColor = hoverColor || (props => props.theme.colors.accentHover || '#e0a800');
+          // Determine star color based on props and theme
+        let starFillColor = readOnly ? (props => props.theme.colors.star?.filled || '#ffc107') : (color || (props => props.theme.colors.star?.filled || '#ffc107'));
+        let starHoverColor = hoverColor || (props => props.theme.colors.star?.hover || '#e0a800');
         let starEmptyColor = props => props.theme.colors.text.disabled || '#e4e5e9';
 
         let finalStarColor;
