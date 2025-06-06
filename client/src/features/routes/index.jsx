@@ -6,7 +6,8 @@ import Sorter from '../../pages/BiasSorter';
 import Login from '../../pages/Login';
 import Lists from '../../pages/Lists';
 import Music from '../../pages/Music.jsx';
-import AlbumDetailsPage from '../../pages/AlbumDetailsPage'; // Add this import
+import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
+import UserCollectionPage from '../../pages/UserCollectionPage';
 
 // Route configuration with metadata
 export const routes = [
@@ -52,13 +53,19 @@ export const routes = [
     title: 'Music | BeatMeter',
     isPublic: true,
     description: 'Discover and manage your music collections'
-  },
-  {
+  },  {
     path: '/album/:albumId', // New route for album details
     element: AlbumDetailsPage,
     title: 'Album Details | BeatMeter',
     isPublic: true,
     description: 'View album details and ratings'
+  },
+  {
+    path: '/collection', // User collection route
+    element: UserCollectionPage,
+    title: 'Your Collection | BeatMeter',
+    isPublic: false, // This should be false in a real app as it requires authentication
+    description: 'View and manage your music collection'
   }
 ];
 

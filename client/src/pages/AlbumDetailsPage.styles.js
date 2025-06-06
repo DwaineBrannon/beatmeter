@@ -81,3 +81,41 @@ export const TracksList = styled.ul`
   border-radius: 8px;
   min-width: 500px; /* Ensure minimum width */
 `;
+
+export const ActionButton = styled.button`
+  background-color: ${props => props.theme.colors.accent || '#1db954'};
+  color: white;
+  border: none;
+  border-radius: ${props => props.theme.borderRadius.medium || '25px'};
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px;
+  
+  &:hover:not(:disabled) {
+    background-color: #1ed760;
+    transform: translateY(-2px);
+  }
+  
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+`;
+
+export const ActionButtonsContainer = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+`;
+
+export const RateLaterButton = styled(ActionButton)`
+  background-color: ${props => props.theme.colors.secondary || '#7b68ee'};
+  
+  &:hover:not(:disabled) {
+    background-color: #8a77ff;
+  }
+`;

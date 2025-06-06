@@ -112,10 +112,10 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
           <span />
         </NavBarHamburger>
 
-        {/* Desktop nav links */}
-        <NavBarLinks>
+        {/* Desktop nav links */}        <NavBarLinks>
           <NavBarLink to="/music">Music</NavBarLink>
           <NavBarLink to="/lists">Lists</NavBarLink>
+          {isSignedIn && <NavBarLink to="/collection">My Collection</NavBarLink>}
           <NavBarLink to="/profile">Profile</NavBarLink>
           <NavBarDivider />
           {isSignedIn ? (
@@ -141,9 +141,9 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
               {UserAvatar}
               {dropdownOpen && UserDropdown}
             </NavBarMobileAvatarContainer>
-          )}
-          <NavBarMobileLink to="/music" onClick={() => setMobileOpen(false)}>Music</NavBarMobileLink>
+          )}          <NavBarMobileLink to="/music" onClick={() => setMobileOpen(false)}>Music</NavBarMobileLink>
           <NavBarMobileLink to="/lists" onClick={() => setMobileOpen(false)}>Lists</NavBarMobileLink>
+          {isSignedIn && <NavBarMobileLink to="/collection" onClick={() => setMobileOpen(false)}>My Collection</NavBarMobileLink>}
           <NavBarMobileLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavBarMobileLink>
           {!isSignedIn && <>
             <NavBarMobileLink to="/login" onClick={() => setMobileOpen(false)}>Sign In</NavBarMobileLink>
