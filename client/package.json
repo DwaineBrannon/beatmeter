@@ -16,6 +16,9 @@
   "dependencies": {
     "axios": "^1.8.4",
     "color-thief-browser": "^2.0.2",
+    "firebase": "^11.9.0",
+    "firebase-admin": "^11.8.0",
+    "firebase-functions": "^4.3.1",
     "html2canvas": "^1.4.1",
     "model-context-protocol": "^1.0.2",
     "react": "^18.2.0",

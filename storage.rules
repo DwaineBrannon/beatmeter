@@ -1,0 +1,21 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      // Allow read/write access to all users under any conditions
+      // Warning: Your rules are public! Anyone can read/write your Storage data.
+      allow read, write: if true;
+      
+      // For a more secure setup, use this instead:
+      // allow read: if true;  // Anyone can read files
+      // allow write: if request.auth != null;  // Only authenticated users can upload files
+    }
+    
+    // More specific rules for profile pictures
+    match /profilePictures/{userId} {
+      // Allow the user to upload their own profile picture
+      // allow read: if true;
+      // allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

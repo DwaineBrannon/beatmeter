@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../auth/context/AuthContext";
 import {
   NavBarRoot,
   NavBarInner,
@@ -26,8 +27,10 @@ import {
   NavBarMobileAvatarContainer
 } from './NavBar.styles';
 
-// Accept isSignedIn, user, and onSignOut as props
-function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
+function NavBar() {
+  const { currentUser, logout: authLogout } = useAuth();
+  const isSignedIn = !!currentUser;
+  const user = currentUser || {};
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -43,12 +46,17 @@ function NavBar({ isSignedIn = false, user = {}, onSignOut }) {
       navigate(`/music?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-
   // Handle sign out click
-  const handleSignOut = (e) => {
+  const handleSignOut = async (e) => {
     e.preventDefault();
     setDropdownOpen(false);
-    if (onSignOut) onSignOut();
+    try {
+      await authLogout();
+      // Redirect to home page after logout
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to sign out', error);
+    }
   };
 
   // Close dropdown on outside click

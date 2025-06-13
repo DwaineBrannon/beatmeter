@@ -4,10 +4,14 @@ import Home from '../../pages/Home';
 import Profile from '../../pages/Profile';
 import Sorter from '../../pages/BiasSorter';
 import Login from '../../pages/Login';
+import CreateAccount from '../../pages/CreateAccount';
+import ForgotPassword from '../../pages/ForgotPassword';
 import Lists from '../../pages/Lists';
 import Music from '../../pages/Music.jsx';
 import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
+import ProtectedRoute from '../auth/components/ProtectedRoute';
+import ProfileSetup from '../auth/components/ProfileSetup';
 
 // Route configuration with metadata
 export const routes = [
@@ -24,14 +28,27 @@ export const routes = [
     title: 'Song Sorter | BeatMeter',
     isPublic: true,
     description: 'Sort and rank your favorite songs'
-  },
-  {
-    // This will need to be a dynamic route in the future to handle user profiles.
-    path: '/profile', 
+  },  {
+    // Dynamic route to handle user profiles
+    path: '/profile/:username', 
     element: Profile,
     title: 'Profile | BeatMeter',
     isPublic: true,
     description: 'View user profile and rankings'
+  },
+  {
+    path: '/profile', 
+    element: Profile,
+    title: 'My Profile | BeatMeter',
+    isPublic: false,
+    description: 'View your profile'
+  },
+  {
+    path: '/profile-setup',
+    element: ProfileSetup,
+    title: 'Setup Your Profile | BeatMeter',
+    isPublic: false,
+    description: 'Complete your profile setup'
   },
   {
     path: '/login',
@@ -39,6 +56,20 @@ export const routes = [
     title: 'Login | BeatMeter',
     isPublic: true,
     description: 'Sign in to BeatMeter'
+  },
+  {
+    path: '/create-account',
+    element: CreateAccount,
+    title: 'Create Account | BeatMeter',
+    isPublic: true,
+    description: 'Create a new BeatMeter account'
+  },
+  {
+    path: '/forgot-password',
+    element: ForgotPassword,
+    title: 'Forgot Password | BeatMeter',
+    isPublic: true,
+    description: 'Reset your BeatMeter password'
   },
   {
     path: '/lists',
@@ -73,7 +104,7 @@ export const routes = [
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: ElementComponent, title }) => (
+      {routes.map(({ path, element: Element, title, isPublic }) => (
         <Route 
           key={path} 
           path={path} 
@@ -81,7 +112,13 @@ export const generateRoutes = () => {
             <>
               {/* Update page title when route changes */}
               <title>{title}</title>
-              <ElementComponent />
+              {isPublic ? (
+                <Element />
+              ) : (
+                <ProtectedRoute>
+                  <Element />
+                </ProtectedRoute>
+              )}
             </>
           } 
         />

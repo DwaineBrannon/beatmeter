@@ -11,6 +11,12 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../features/auth/context/AuthContext";
+import { useOnboarding } from "../features/auth/hooks/useOnboarding";
+import { db } from "../config/firebase";
+import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
+import { executeFirestoreOperation, logFirebaseError } from "../utils/firebaseHelpers";
+import EditProfileModal from "../features/auth/components/EditProfileModal";
 import {
   ProfilePageContainer,
   ProfileHeaderContainer,
@@ -44,55 +50,177 @@ import {
 
 function Profile() {
   const { username } = useParams();
-  const navigate = useNavigate();  const [userData, setUserData] = useState(null);
+  const navigate = useNavigate();
+  const [userData, setUserData] = useState(null);
   const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState("All");
   const [musicView, setMusicView] = useState("Grid"); // "Grid" or "List"
-
-  // Simulated login state for development
-  const [isLoggedIn] = useState(true); // Change to false to simulate logged-out state
-  const loggedInUsername = "testUser"; // Replace with the logged-in user's username
-
+  // Use the real auth context instead of simulated login state
+  const { currentUser } = useAuth();
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  
+  // Use onboarding hook to check if profile is complete
+  // If viewing own profile and profile is incomplete, redirect to profile setup
+  const isOwnProfile = username === currentUser?.displayName;
+  useOnboarding({ 
+    redirectOnIncomplete: isOwnProfile,
+    redirectPath: '/profile-setup'
+  });
+  
+  const isLoggedIn = !!currentUser;
+  const loggedInUsername = currentUser?.displayName || "Guest";
   useEffect(() => {
     // Redirect to the logged-in user's profile if no username is provided
     if (!username && isLoggedIn) {
-      // navigate(`/profile/${loggedInUsername}`); // Temporarily commented out for development
+      navigate(`/profile/${currentUser.displayName}`);
     } else if (!username && !isLoggedIn) {
       setUserData(null); // Clear any existing user data
+      navigate('/login'); // Redirect to login if not logged in
       return; // Stop further execution
     }
-  }, [username, isLoggedIn, loggedInUsername, navigate]);
-
+  }, [username, isLoggedIn, currentUser, navigate]);
+  
   useEffect(() => {
-    if (username) {
-      // Fetch user data and posts based on username
+    if (username) {      // Fetch user data and posts based on username
       async function fetchData() {
         try {
-          const userResponse = await fetch(`/api/users/${username}`);
-          const userText = await userResponse.text();
-          console.log("User API Response:", userText);
-          const user = JSON.parse(userText);
-          setUserData(user);
+          console.log("Fetching profile data for:", username);
+          
+          // Query userprofiles collection to find the user with the matching displayName
+          const usersRef = collection(db, 'userprofiles');
+          const q = query(usersRef, where("displayName", "==", username));
+          
+          // Use the utility function for better error handling
+          const querySnapshot = await executeFirestoreOperation(
+            () => getDocs(q),
+            {
+              timeoutMs: 15000,
+              operationName: `Fetch profile for ${username}`
+            }
+          );
+          
+          // Check if the profile belongs to the current user
+          const isOwnProfile = currentUser && currentUser.displayName === username;
+          
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
+            setUserData({
+              name: userData.displayName || 'User',
+              profilePicture: userData.profilePicture || 'https://via.placeholder.com/150',
+              bio: userData.bio || (isOwnProfile ? 'Click "Edit Profile" to add your bio' : 'No bio available'),
+              followersCount: userData.followers?.length || 0,
+              followingCount: userData.following?.length || 0,
+              isFollowing: currentUser ? userData.followers?.includes(currentUser.uid) : false,
+              loggedAlbums: userData.musicCollection || [],
+              profileSetup: !!(userData.bio && userData.profilePicture) // Track if profile has been set up
+            });
 
-          const postsResponse = await fetch(`/api/users/${username}/posts`);
-          const postsText = await postsResponse.text();
-          console.log("Posts API Response:", postsText);
-          const userPosts = JSON.parse(postsText);
-          setPosts(userPosts);
+            // Fetch posts (this would need to be implemented with a Firestore collection)
+            // For now, we'll use mock data
+            const mockPosts = [
+              { id: 1, title: "First Post", content: "This is a review.", type: "Reviews" },
+              { id: 2, title: "Quick Note", content: "This is a note.", type: "Notes" },
+            ];
+            setPosts(mockPosts);
+          } else if (isOwnProfile) {
+            // If viewing own profile but no document found with matching displayName
+            // This might happen if the user just signed up and their profile was created by the cloud function
+            // but their displayName wasn't properly set
+            
+            // First, try to find the profile by UID instead
+            const userByIdRef = doc(db, 'userprofiles', currentUser.uid);
+            const userByIdSnapshot = await executeFirestoreOperation(
+              () => getDoc(userByIdRef),
+              {
+                timeoutMs: 10000,
+                operationName: `Fetch profile by UID for ${currentUser.uid}`
+              }
+            );
+            
+            if (userByIdSnapshot.exists()) {
+              // Found the user by UID, now update the displayName if needed
+              const userProfileData = userByIdSnapshot.data();
+              
+              if (!userProfileData.displayName && currentUser.displayName) {
+                // Update the displayName if it's not set but available in auth
+                await executeFirestoreOperation(
+                  () => setDoc(userByIdRef, {
+                    displayName: currentUser.displayName
+                  }, { merge: true }),
+                  {
+                    timeoutMs: 8000,
+                    operationName: 'Update displayName in profile'
+                  }
+                );
+                
+                userProfileData.displayName = currentUser.displayName;
+              }
+              
+              setUserData({
+                name: userProfileData.displayName || currentUser.displayName || 'User',
+                profilePicture: userProfileData.profilePicture || currentUser.photoURL || 'https://via.placeholder.com/150',
+                bio: userProfileData.bio || 'Click "Edit Profile" to add your bio',
+                followersCount: userProfileData.followers?.length || 0,
+                followingCount: userProfileData.following?.length || 0,
+                isFollowing: false,
+                loggedAlbums: userProfileData.musicCollection || [],
+                profileSetup: !!(userProfileData.bio && userProfileData.profilePicture)
+              });
+              setPosts([]);
+              
+              // Redirect to the correct URL with the displayName if needed
+              if (userProfileData.displayName && userProfileData.displayName !== username) {
+                navigate(`/profile/${userProfileData.displayName}`);
+              }
+            } else {
+              // No profile found at all, might happen if cloud function failed or user is new
+              console.log("No user profile found, showing empty profile view");
+              setUserData({
+                name: currentUser.displayName || 'User',
+                profilePicture: currentUser.photoURL || 'https://via.placeholder.com/150',
+                bio: 'Click "Edit Profile" to add your bio',
+                followersCount: 0,
+                followingCount: 0,
+                isFollowing: false,
+                loggedAlbums: [],
+                profileSetup: false
+              });
+              setPosts([]);
+            }
+          } else {
+            console.error("User not found");
+            // Handle user not found case
+            navigate('/'); // Redirect to home if user not found
+          }
         } catch (error) {
-          console.error("Error fetching profile data:", error);
+          logFirebaseError(error, "Fetching profile data");
+          
+          // Show user-friendly error message
+          setUserData({
+            name: "Error",
+            profilePicture: 'https://via.placeholder.com/150',
+            bio: 'There was a problem loading this profile. Please try refreshing the page.',
+            followersCount: 0,
+            followingCount: 0,
+            isFollowing: false,
+            loggedAlbums: [],
+            profileSetup: false
+          });
         }
       }
 
-      fetchData();    } else {
-      // Simulate mock data for development
+      fetchData();
+    } else {
+      // Fallback mock data for development
       const mockUserData = {
         name: "GagaLover",
         profilePicture: "https://via.placeholder.com/150",
         bio: "Gaga is Queen. Wish she wasn't a zionist.. :(",
         followersCount: 69,
         followingCount: 420,
-        isFollowing: false,        loggedAlbums: [
+        isFollowing: false,
+        loggedAlbums: [
           { id: 1, title: "Chromatica", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
           { id: 2, title: "Born This Way", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
           { id: 3, title: "The Fame Monster", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
@@ -108,7 +236,7 @@ function Profile() {
       setUserData(mockUserData);
       setPosts(mockPosts);
     }
-  }, [username]);
+  }, [username, currentUser, navigate]);
 
   const filteredPosts = posts.filter((post) => {
     if (filter === "All") return true;
@@ -122,15 +250,56 @@ function Profile() {
     <ProfilePageContainer>
       <ProfileHeaderContainer>
         <ProfilePicture src={userData.profilePicture} alt={`${userData.name}'s profile`} />
-        <UserInfoContainer>
-          <UserNameText>{userData.name}</UserNameText>
+        <UserInfoContainer>          <UserNameText>{userData.name}</UserNameText>
           <UserBioText>{userData.bio}</UserBioText>
+          {isCurrentUser && !userData.profileSetup && (
+            <UserBioText style={{ color: "#e67e22", fontStyle: "italic", marginTop: "5px" }}>
+              Your profile is not fully set up yet. Click "Edit Profile" to complete your profile.
+            </UserBioText>
+          )}
           {isCurrentUser ? (
-            <EditProfileButton>Edit Profile</EditProfileButton>
-          ) : (
-            <FollowButton isFollowing={userData.isFollowing}>
+            <EditProfileButton onClick={() => setIsEditProfileModalOpen(true)}>
+              {userData.profileSetup ? "Edit Profile" : "Complete Profile Setup"}
+            </EditProfileButton>
+          ) : (            <FollowButton $isFollowing={userData.isFollowing}>
               {userData.isFollowing ? "Unfollow" : "Follow"}
             </FollowButton>
+          )}
+            {isEditProfileModalOpen && (
+            <EditProfileModal 
+              isOpen={isEditProfileModalOpen}
+              onClose={(refresh) => {
+                setIsEditProfileModalOpen(false);
+                if (refresh) {
+                  // Re-fetch user data after profile update
+                  const fetchUpdatedUserData = async () => {                    try {
+                      const userDoc = await getDoc(doc(db, 'userprofiles', currentUser.uid));
+                      if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        setUserData({
+                          name: userData.displayName || 'User',
+                          profilePicture: userData.profilePicture || 'https://via.placeholder.com/150',
+                          bio: userData.bio || 'Click "Edit Profile" to add your bio',
+                          followersCount: userData.followers?.length || 0,
+                          followingCount: userData.following?.length || 0,
+                          isFollowing: currentUser ? userData.followers?.includes(currentUser.uid) : false,
+                          loggedAlbums: userData.musicCollection || [],
+                          profileSetup: !!(userData.bio && userData.profilePicture) // Update profile setup status
+                        });
+                      }
+                    } catch (error) {
+                      console.error("Error fetching updated profile data:", error);
+                    }
+                  };
+                  fetchUpdatedUserData();
+                }
+              }}              userData={{
+                name: userData.name,
+                bio: userData.bio,
+                profilePicture: userData.profilePicture,
+                isNewProfile: !userData.profileSetup
+              }}
+            />
           )}
         </UserInfoContainer>
       </ProfileHeaderContainer>
@@ -142,72 +311,83 @@ function Profile() {
 
       <ContentSectionContainer> 
         <SectionTitleText>Posts</SectionTitleText>
-        <ContentFiltersContainer>
-          <FilterButton 
-            isActive={filter === "All"} 
+        <ContentFiltersContainer>          <FilterButton 
+            $isActive={filter === "All"} 
             onClick={() => setFilter("All")}
           >
             All
           </FilterButton>
           <FilterButton 
-            isActive={filter === "Reviews"} 
+            $isActive={filter === "Reviews"} 
             onClick={() => setFilter("Reviews")}
           >
             Reviews
           </FilterButton>
           <FilterButton 
-            isActive={filter === "Notes"} 
+            $isActive={filter === "Notes"} 
             onClick={() => setFilter("Notes")}
           >
             Notes
           </FilterButton>
-        </ContentFiltersContainer>
-        <PostsListContainer>
-          {filteredPosts.map((post) => (
-            <PostItemContainer key={post.id}>
-              <PostTitleText>{post.title}</PostTitleText>
-              <PostContentText>{post.content}</PostContentText>
-            </PostItemContainer>
-          ))}
+        </ContentFiltersContainer>        <PostsListContainer>
+          {filteredPosts.length > 0 ? (
+            filteredPosts.map((post) => (
+              <PostItemContainer key={post.id}>
+                <PostTitleText>{post.title}</PostTitleText>
+                <PostContentText>{post.content}</PostContentText>
+              </PostItemContainer>
+            ))
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+              {isCurrentUser ? "You haven't created any posts yet." : "This user hasn't created any posts yet."}
+            </div>
+          )}
         </PostsListContainer>
       </ContentSectionContainer>      <ContentSectionContainer>
-        <SectionTitleText>Music</SectionTitleText>        <ContentFiltersContainer>
-          <FilterButton 
-            isActive={musicView === "Grid"} 
+        <SectionTitleText>Music</SectionTitleText>        <ContentFiltersContainer>          <FilterButton 
+            $isActive={musicView === "Grid"} 
             onClick={() => setMusicView("Grid")}
           >
             Music
           </FilterButton>
           <FilterButton 
-            isActive={musicView === "List"} 
+            $isActive={musicView === "List"} 
             onClick={() => setMusicView("List")}
           >
             Want to Listen
           </FilterButton>
-        </ContentFiltersContainer>        {musicView === "Grid" ? (
-          <MusicListContainer>
-            {userData.loggedAlbums.map((album) => (
-              <MusicListItemContainer key={album.id}>
-                <MusicListAlbumImage src={album.cover} alt={album.title}/>
-                <MusicListAlbumInfo>
-                  <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
-                  <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
-                </MusicListAlbumInfo>
-              </MusicListItemContainer>
-            ))}
-          </MusicListContainer>
+        </ContentFiltersContainer>{userData.loggedAlbums && userData.loggedAlbums.length > 0 ? (
+          musicView === "Grid" ? (
+            <MusicListContainer>
+              {userData.loggedAlbums.map((album) => (
+                <MusicListItemContainer key={album.id}>
+                  <MusicListAlbumImage src={album.cover} alt={album.title}/>
+                  <MusicListAlbumInfo>
+                    <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
+                    <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
+                  </MusicListAlbumInfo>
+                </MusicListItemContainer>
+              ))}
+            </MusicListContainer>
+          ) : (
+            <MusicListContainer>
+              {userData.loggedAlbums.map((album) => (
+                <MusicListItemContainer key={album.id}>
+                  <MusicListAlbumImage src={album.cover} alt={album.title}/>
+                  <MusicListAlbumInfo>
+                    <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
+                    <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
+                  </MusicListAlbumInfo>
+                </MusicListItemContainer>
+              ))}
+            </MusicListContainer>
+          )
         ) : (
-          <MusicListContainer>
-            {userData.loggedAlbums.map((album) => (
-              <MusicListItemContainer key={album.id}>
-                <MusicListAlbumImage src={album.cover} alt={album.title}/>
-                <MusicListAlbumInfo>
-                  <MusicListAlbumTitle>{album.title}</MusicListAlbumTitle>
-                  <MusicListAlbumArtist>{album.artist}</MusicListAlbumArtist>
-                </MusicListAlbumInfo>
-              </MusicListItemContainer>
-            ))}
-          </MusicListContainer>
+          <div style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+            {isCurrentUser ? 
+              "You haven't logged any music yet. Start adding albums to your collection!" :
+              "This user hasn't logged any music yet."}
+          </div>
         )}
       </ContentSectionContainer>
     </ProfilePageContainer>

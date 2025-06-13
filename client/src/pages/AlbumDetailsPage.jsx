@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import StarRating from '../features/music/components/StarRating';
 import SongItem from '../features/music/components/SongItem';
 import { addToCollection, updateSongRatings, addToRateLater } from '../features/music/services/collectionService';
+import { useAuth } from '../features/auth/context/AuthContext';
 import {
   PageContainer,
   AlbumTitle,
@@ -55,10 +56,10 @@ function AlbumDetailsPage() {
   const [album, setAlbum] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const [retryCount, setRetryCount] = React.useState(0);
-  const [songRatings, setSongRatings] = React.useState({});
+  const [retryCount, setRetryCount] = React.useState(0);  const [songRatings, setSongRatings] = React.useState({});
   const [albumRating, setAlbumRating] = React.useState(null);
-  const [isAuthenticated] = React.useState(true); // Simulated authentication state
+  const { currentUser } = useAuth();
+  const isAuthenticated = !!currentUser;
   const [addedToCollection, setAddedToCollection] = React.useState(false);
   const [addedToRateLater, setAddedToRateLater] = React.useState(false);
   const [apiError, setApiError] = React.useState(null);
@@ -147,8 +148,8 @@ function AlbumDetailsPage() {
       // Show success message and optionally redirect
       setTimeout(() => {
         setAddedToCollection(false);
-        // Optional: redirect to collection page
-        // navigate('/collection');
+        // Success Message to user
+        alert('Album added to your collection successfully!');
       }, 3000);
     } catch (error) {
       console.error('Error adding album to collection:', error);

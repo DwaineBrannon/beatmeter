@@ -67,12 +67,12 @@ export const FollowButton = styled.button`
   cursor: pointer;
   margin-top: ${props => props.theme.spacing.medium || '10px'};
   font-weight: 600;
-  background-color: ${props => props.isFollowing 
+  background-color: ${props => props.$isFollowing 
     ? '#ccc' 
     : props.theme.colors.accent || '#28a745'};
   
   &:hover {
-    background-color: ${props => props.isFollowing ? '#bbb' : '#1e7e34'};
+    background-color: ${props => props.$isFollowing ? '#bbb' : '#1e7e34'};
   }
 `;
 
@@ -113,20 +113,20 @@ export const ContentFiltersContainer = styled.div`
 
 export const FilterButton = styled.button`
   padding: ${props => props.theme.spacing.small} ${props => props.theme.spacing.medium};
-  background-color: ${props => props.isActive 
+  background-color: ${props => props.$isActive 
     ? props.theme.colors.accent || '#007bff'
     : props.theme.colors.background.primary || '#f0f0f0'};
-  border: 1px solid ${props => props.isActive 
+  border: 1px solid ${props => props.$isActive 
     ? props.theme.colors.accent || '#007bff'
     : props.theme.colors.background.accent || '#ccc'};
   border-radius: ${props => props.theme.borderRadius.small || '4px'};
   cursor: pointer;
-  color: ${props => props.isActive 
+  color: ${props => props.$isActive 
     ? props.theme.colors.text.primary || 'white'
     : props.theme.colors.text.secondary || '#333'};
   
   &:hover {
-    background-color: ${props => props.isActive 
+    background-color: ${props => props.$isActive 
       ? '#0056b3'
       : '#e0e0e0'};
   }
