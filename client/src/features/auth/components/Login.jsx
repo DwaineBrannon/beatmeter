@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { db } from '../../../config/firebase';
+import { firestore } from '../../../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import styled from 'styled-components';
 
@@ -167,7 +167,7 @@ function Login() {
       const userCredential = await login(email, password);
       
       // Check if user has completed their profile
-      const userDocRef = doc(db, 'userprofiles', userCredential.user.uid);
+      const userDocRef = doc(firestore, 'userprofiles', userCredential.user.uid);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists() && userDoc.data().bio) {
@@ -201,7 +201,7 @@ function Login() {
       const user = await googleSignIn();
       
       // Check if user has completed their profile
-      const userDocRef = doc(db, 'userprofiles', user.uid);
+      const userDocRef = doc(firestore, 'userprofiles', user.uid);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists() && userDoc.data().bio) {

@@ -14,8 +14,8 @@ service firebase.storage {
     // More specific rules for profile pictures
     match /profilePictures/{userId} {
       // Allow the user to upload their own profile picture
-      // allow read: if true;
-      // allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }

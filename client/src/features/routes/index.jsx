@@ -12,6 +12,8 @@ import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
 import ProtectedRoute from '../auth/components/ProtectedRoute';
 import ProfileSetup from '../auth/components/ProfileSetup';
+import FirestoreDebugger from '../../components/debug/FirestoreDebugger';
+import FirestoreDebugPage from '../../components/debug/FirestoreDebugPage';
 
 // Route configuration with metadata
 export const routes = [
@@ -97,6 +99,12 @@ export const routes = [
     title: 'Your Collection | BeatMeter',
     isPublic: false, // This should be false in a real app as it requires authentication
     description: 'View and manage your music collection'
+  },  {
+    path: '/debug-firestore',
+    element: FirestoreDebugPage,
+    title: 'Firestore Debugger | BeatMeter',
+    isPublic: false, // Require authentication for debug tools
+    description: 'Debug Firestore 400 errors and test connectivity'
   }
 ];
 
@@ -104,25 +112,28 @@ export const routes = [
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: Element, title, isPublic }) => (
-        <Route 
-          key={path} 
-          path={path} 
-          element={
-            <>
-              {/* Update page title when route changes */}
-              <title>{title}</title>
-              {isPublic ? (
-                <Element />
-              ) : (
-                <ProtectedRoute>
-                  <Element />
-                </ProtectedRoute>
-              )}
-            </>
-          } 
-        />
-      ))}
+      {routes.map(({ path, element: ElementComponent, title, isPublic }) => {
+        const Component = ElementComponent;
+        return (
+          <Route 
+            key={path} 
+            path={path} 
+            element={
+              <>
+                {/* Update page title when route changes */}
+                <title>{title}</title>
+                {isPublic ? (
+                  <Component />
+                ) : (
+                  <ProtectedRoute>
+                    <Component />
+                  </ProtectedRoute>
+                )}
+              </>
+            } 
+          />
+        );
+      })}
     </Route>
   );
 };

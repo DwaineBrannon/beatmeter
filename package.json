@@ -1,30 +1,22 @@
 {
   "name": "beatmeterweb",
   "version": "1.0.0",
-  "private": true,
-  "workspaces": [
-    "client",
-    "server"
-  ],
+  "description": "",
+  "main": "index.js",
   "scripts": {
+    "dev": "concurrently \"npm run emulator\" \"npm run client\"",
+    "emulator": "firebase emulators:start",
     "client": "cd client && npm run dev",
-    "server": "cd server && npm start",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "build": "cd client && npm run build",
-    "test": "npm run test:client && npm run test:server",
-    "test:client": "cd client && npm test",
-    "test:server": "cd server && npm test"
+    "deploy": "npm run build && firebase deploy",
+    "serve": "firebase serve --only hosting",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
   "devDependencies": {
-    "@babel/cli": "^7.27.2",
-    "@babel/core": "^7.27.4",
-    "@babel/preset-env": "^7.27.2",
-    "@babel/preset-react": "^7.27.1",
-    "babel-plugin-styled-components": "^2.1.4",
-    "concurrently": "^8.0.0",
-    "core-js": "^3.31.0"
-  },
-  "dependencies": {
-    "react-icons": "^5.5.0"
+    "concurrently": "^8.2.2",
+    "firebase-tools": "^13.31.0"
   }
 }

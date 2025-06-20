@@ -1,3 +1,5 @@
+import { getIdToken } from '@/utils/authHelpers';
+
 /**
  * Music collection service for handling album and collection operations
  */
@@ -12,7 +14,7 @@ export const addToCollection = async (albumData) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch('/api/users/me/collection', {
+    const response = await authFetch('/api/users/me/collection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -43,7 +45,7 @@ export const getUserCollection = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch('/api/users/me/collection', {
+    const response = await authFetch('/api/users/me/collection', {
       signal: controller.signal
     });
     
@@ -71,7 +73,7 @@ export const updateCollectionItemRating = async (itemId, rating) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`/api/users/me/collection/${itemId}/rating`, {
+    const response = await authFetch(`/api/users/me/collection/${itemId}/rating`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -103,7 +105,7 @@ export const removeFromCollection = async (itemId) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`/api/users/me/collection/${itemId}`, {
+    const response = await authFetch(`/api/users/me/collection/${itemId}`, {
       method: 'DELETE',
       signal: controller.signal
     });
@@ -132,7 +134,7 @@ export const updateSongRatings = async (albumId, songRatings) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch(`/api/music/albums/${albumId}/songs/ratings`, {
+    const response = await authFetch(`/api/music/albums/${albumId}/songs/ratings`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -164,7 +166,7 @@ export const addToRateLater = async (albumData) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await fetch('/api/users/me/ratelater', {
+    const response = await authFetch('/api/users/me/ratelater', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,3 +192,66 @@ export const addToRateLater = async (albumData) => {
     throw error; // Rethrow so the calling function can handle it
   }
 };
+
+/**
+ * Get a user's "Rate Later" list
+ * @returns {Promise<Array>} - Rate Later list of albums
+ */
+export const getRateLater = async () => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await authFetch('/api/users/me/ratelater', {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error fetching Rate Later list:", error);
+    throw error; // Rethrow so the calling function can handle it
+  }
+};
+
+/**
+ * Remove an album from a user's "Rate Later" list
+ * @param {string} itemId - ID of the album to remove
+ * @returns {Promise<object>} - Result of the operation
+ */
+export const removeFromRateLater = async (itemId) => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await authFetch(`/api/users/me/ratelater/${itemId}`, {
+      method: 'DELETE',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error("Error removing from Rate Later list:", error);
+    throw error; // Rethrow so the calling function can handle it
+  }
+};
+
+async function authFetch(url, options = {}) {
+  const token = await getIdToken();
+  const headers = {
+    ...(options.headers || {}),
+    Authorization: `Bearer ${token}`,
+  };
+  return fetch(url, { ...options, headers });
+}

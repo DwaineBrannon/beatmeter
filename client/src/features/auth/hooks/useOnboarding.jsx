@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../config/firebase';
+import { firestore } from '../../../config/firebase';
 
 /**
  * Custom hook to handle user onboarding flow
@@ -25,7 +25,7 @@ export function useOnboarding({ redirectOnIncomplete = false, redirectPath = '/p
       }
 
       try {
-        const userDocRef = doc(db, 'userprofiles', currentUser.uid);
+        const userDocRef = doc(firestore, 'userprofiles', currentUser.uid);
         const docSnap = await getDoc(userDocRef);
         
         if (docSnap.exists()) {

@@ -13,7 +13,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/context/AuthContext";
 import { useOnboarding } from "../features/auth/hooks/useOnboarding";
-import { db } from "../config/firebase";
+import { firestore } from "../config/firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 import { executeFirestoreOperation, logFirebaseError } from "../utils/firebaseHelpers";
 import EditProfileModal from "../features/auth/components/EditProfileModal";
@@ -87,7 +87,7 @@ function Profile() {
           console.log("Fetching profile data for:", username);
           
           // Query userprofiles collection to find the user with the matching displayName
-          const usersRef = collection(db, 'userprofiles');
+          const usersRef = collection(firestore, 'userprofiles');
           const q = query(usersRef, where("displayName", "==", username));
           
           // Use the utility function for better error handling
@@ -129,7 +129,7 @@ function Profile() {
             // but their displayName wasn't properly set
             
             // First, try to find the profile by UID instead
-            const userByIdRef = doc(db, 'userprofiles', currentUser.uid);
+            const userByIdRef = doc(firestore, 'userprofiles', currentUser.uid);
             const userByIdSnapshot = await executeFirestoreOperation(
               () => getDoc(userByIdRef),
               {
@@ -273,7 +273,7 @@ function Profile() {
                 if (refresh) {
                   // Re-fetch user data after profile update
                   const fetchUpdatedUserData = async () => {                    try {
-                      const userDoc = await getDoc(doc(db, 'userprofiles', currentUser.uid));
+                      const userDoc = await getDoc(doc(firestore, 'userprofiles', currentUser.uid));
                       if (userDoc.exists()) {
                         const userData = userDoc.data();
                         setUserData({

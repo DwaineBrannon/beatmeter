@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../config/firebase';
+import { firestore } from '../../../config/firebase';
 
 // Protected route component that redirects to login if user is not authenticated
 // Also redirects to profile setup if profile is incomplete
@@ -19,7 +19,7 @@ const ProtectedRoute = ({ children, requireCompleteProfile = false }) => {
       }
       
       if (requireCompleteProfile) {        try {
-          const userDoc = await getDoc(doc(db, 'userprofiles', currentUser.uid));
+          const userDoc = await getDoc(doc(firestore, 'userprofiles', currentUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
             // Consider profile complete if it has bio and profile picture

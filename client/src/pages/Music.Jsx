@@ -47,7 +47,7 @@ const Music = () => {
       }
       
       const data = await response.json();
-      setAlbums(data.albums);
+      setAlbums(Array.isArray(data.albums) ? data.albums : []);
     } catch (error) {
       setError('Failed to load albums. Please try again.');
       console.error('Error fetching albums:', error);
@@ -73,7 +73,7 @@ const Music = () => {
       }
       
       const data = await response.json();
-      setSearchResults(data.albums);
+      setSearchResults(Array.isArray(data.albums) ? data.albums : []);
     } catch (error) {
       setError('Failed to search. Please try again.');
       console.error('Error searching:', error);

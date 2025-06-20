@@ -12,13 +12,13 @@ export default defineConfig({
       '@styles': fileURLToPath(new URL('./src/styles', import.meta.url)),
       '@utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
     },
-  },
-  server: {
+  },  server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:5001/beatmeter-baf5a/us-central1/api',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },
