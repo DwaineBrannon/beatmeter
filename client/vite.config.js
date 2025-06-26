@@ -22,9 +22,8 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
     },
-  },
-  build: {
-    outDir: 'client/dist',
+  },  build: {
+    outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
       output: {

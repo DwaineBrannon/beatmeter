@@ -110,9 +110,8 @@ const Music = () => {
     setSearchResults([]);
     setIsSearching(false);
   };
-
   // Determine which data to display
-  const displayData = searchResults.length > 0 ? searchResults : albums;
+  const displayData = searchResults.length > 0 ? searchResults : (albums || []);
   const showPagination = searchResults.length === 0;
 
   // Handle page change

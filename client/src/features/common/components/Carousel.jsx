@@ -7,7 +7,7 @@ import {
   NavigationButton
 } from './Carousel.styles';
 
-function Carousel({ items, renderItem }) {
+function Carousel({ items = [], renderItem }) {
   const scrollRef = useRef(null);
   const containerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);

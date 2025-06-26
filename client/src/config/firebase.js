@@ -17,7 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const firestore = getFirestore(app);
+const firestore = getFirestore(app, 'userprofiles');
 const storage = getStorage(app);
 
 // Connect to emulators in development
@@ -27,7 +27,8 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
   
   if (useEmulators) {
     console.log('🔧 Connecting to Firebase emulators...');
-      try {      // Connect to Firestore emulator
+    try {
+      // Connect to Firestore emulator
       if (!firestore._settings?.host?.includes('localhost')) {
         connectFirestoreEmulator(firestore, 'localhost', 8081);
         console.log('✅ Connected to Firestore emulator');
@@ -50,8 +51,10 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
       console.warn('⚠️ Could not connect to emulators:', error.message);
     }
   } else {
-    console.log('🌐 Using production Firebase services');
+    console.log('🔧 Development mode, but emulators disabled');
   }
+} else {
+  console.log('🌐 Using production Firebase services');
 }
 
 // Debug: Log Firebase initialization
