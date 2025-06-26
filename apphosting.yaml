@@ -1,22 +1,11 @@
-# Firebase App Hosting configuration
 runConfig:
-  # The environment to run the app (nodejs20 is recommended)
   runtime: nodejs20
-  # Environment variables for the build and runtime
-  env:
-    GOOGLE_NODE_RUN_SCRIPTS: ""  # Disable default npm scripts
-    NODE_ENV: production
 
 buildConfig:
-  # Commands to run during build
+  rootDirectory: "."
+  outputDirectory: "client/dist"
   commands:
-    - name: "Install root dependencies"
-      command: "npm ci"
-    - name: "Install client dependencies" 
+    - name: "Install client dependencies"
       command: "cd client && npm ci"
     - name: "Build client"
       command: "cd client && npm run build"
-  # Source directory relative to repo root
-  rootDirectory: "."
-  # Output directory after build (relative to rootDirectory)
-  outputDirectory: "client/dist"

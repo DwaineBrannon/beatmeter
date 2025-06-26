@@ -8,8 +8,9 @@
     "emulator": "firebase emulators:start",
     "client": "cd client && npm run dev",
     "install:client": "cd client && npm ci",
-    "build": "npm run install:client && cd client && npm run build",
-    "deploy": "npm run build && firebase deploy",
+    "build:local": "npm run install:client && cd client && npm run build",
+    "build": "echo 'Build handled by apphosting.yaml'",
+    "deploy": "npm run build:local && firebase deploy",
     "serve": "firebase serve --only hosting",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev:all": "concurrently \"npm run dev --prefix client\" \"firebase emulators:start\""
