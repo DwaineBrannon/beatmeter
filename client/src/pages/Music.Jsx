@@ -17,6 +17,7 @@ import {
   LoadingSpinner,
   ErrorMessage
 } from './Music.styles';
+import { apiUrl } from '../utils/api';
 
 const Music = () => {
   const [searchParams] = useSearchParams();
@@ -39,7 +40,7 @@ const Music = () => {
       const offset = (page - 1) * itemsPerPage;
       
       const response = await fetch(
-        `/api/music/new-releases?limit=${itemsPerPage}&offset=${offset}`
+        apiUrl(`/music/new-releases?limit=${itemsPerPage}&offset=${offset}`)
       );
       
       if (!response.ok) {
@@ -65,7 +66,7 @@ const Music = () => {
     
     try {
       const response = await fetch(
-        `/api/music/search?q=${encodeURIComponent(query)}&type=album&limit=${itemsPerPage}`
+        apiUrl(`/music/search?q=${encodeURIComponent(query)}&type=album&limit=${itemsPerPage}`)
       );
       
       if (!response.ok) {
