@@ -1,6 +1,6 @@
 // Centralized user profile creation and update logic
-import { doc, setDoc, serverTimestamp, Timestamp, getDoc } from 'firebase/firestore';
-import { firestore } from '../../../config/firebase';
+import { doc, setDoc, serverTimestamp, Timestamp, getDoc, collection, getDocs, query, limit } from 'firebase/firestore';
+import { firestore, auth } from '../../../config/firebase';
 
 /**
  * Builds a user profile object for Firestore, storing only custom fields.
@@ -140,7 +140,6 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
 
   // Debug: Check Firebase Auth state
   try {
-    const { auth } = await import('../../../config/firebase');
     console.log('[DEBUG] Current Auth user:', auth.currentUser?.uid);
     console.log('[DEBUG] Auth user authenticated:', !!auth.currentUser);
     
@@ -411,7 +410,6 @@ export async function debugFirestore() {
     
     // Test 2: Check authentication
     console.log('\nTest 2: Authentication Status');
-    const { auth } = await import('../../../config/firebase');
     console.log('Auth instance:', auth);
     console.log('Current user:', auth.currentUser);
     console.log('User authenticated:', !!auth.currentUser);
@@ -565,8 +563,6 @@ export async function testCollectionAccess() {
   console.log('=== TESTING COLLECTION ACCESS ===');
   
   try {
-    const { auth } = await import('../../../config/firebase');
-    
     if (!auth.currentUser) {
       return { success: false, error: 'No authenticated user' };
     }
@@ -594,7 +590,6 @@ export async function testCollectionAccess() {
     }
     
     console.log('4. Testing collection query...');
-    const { collection, getDocs, query, limit } = await import('firebase/firestore');
     const collectionRef = collection(firestore, 'userprofiles');
     const q = query(collectionRef, limit(1));
     const querySnapshot = await getDocs(q);

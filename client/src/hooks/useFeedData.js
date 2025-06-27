@@ -40,9 +40,11 @@ export const usePersonalizedFeed = (limit = 20) => {
     
     try {
       const feedData = await getPersonalizedFeed(user.uid, limit);
-      setActivities(feedData);
+      setActivities(Array.isArray(feedData) ? feedData : []);
     } catch (err) {
+      console.error('Error fetching personalized feed:', err);
       setError(err.message);
+      setActivities([]); // Ensure activities is always an array
     } finally {
       setLoading(false);
     }
@@ -75,9 +77,11 @@ export const useGlobalFeed = (limit = 20) => {
     
     try {
       const feedData = await getGlobalFeed(limit, user?.uid);
-      setActivities(feedData);
+      setActivities(Array.isArray(feedData) ? feedData : []);
     } catch (err) {
+      console.error('Error fetching global feed:', err);
       setError(err.message);
+      setActivities([]); // Ensure activities is always an array
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { auth, firestore } from '../../config/firebase';
 import { useAuth } from '../../features/auth/context/AuthContext';
+import { createOrUpdateUserProfile } from '../../features/auth/services/userProfileService';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import styled from 'styled-components';
 
@@ -126,10 +127,8 @@ const FirestoreDebugPage = () => {
         return;
       }
 
-      // Import the function properly
-      const { createUserProfile } = await import('../../features/auth/services/userProfileService');
-      
-      const result = await createUserProfile(auth.currentUser.uid, {
+      // Create user profile
+      const result = await createOrUpdateUserProfile(auth.currentUser.uid, {
         displayName: user?.displayName || 'Test User',
         email: user?.email || 'test@example.com',
         photoURL: user?.photoURL || null,

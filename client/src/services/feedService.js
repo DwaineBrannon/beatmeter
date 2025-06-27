@@ -25,33 +25,38 @@ import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
  * @returns {Promise<Array>} - Array of activity objects with engagement data
  */
 export const getPersonalizedFeed = async (userId, limit = 20) => {
-  return executeFirestoreOperation(async () => {
-    // 1. Get list of users the current user follows
-    const following = await getUserFollowing(userId, 100); // Get up to 100 follows
-    const followingIds = following.map(follow => follow.followingId);
-    
-    // 2. Get activities from followed users
-    let activities = [];
-    if (followingIds.length > 0) {
-      activities = await getFollowingActivityFeed(followingIds, limit);
-    }
-    
-    // 3. If not enough activities from follows, supplement with global feed
-    if (activities.length < limit) {
-      const globalActivities = await getRecentActivities(limit - activities.length);
-      // Filter out activities from users already in the feed
-      const existingUserIds = new Set(activities.map(a => a.userId));
-      const supplementalActivities = globalActivities.filter(
-        activity => !existingUserIds.has(activity.userId)
-      );
-      activities = [...activities, ...supplementalActivities];
-    }
-    
-    // 4. Enrich activities with engagement data
-    const enrichedActivities = await enrichActivitiesWithEngagement(activities, userId);
-    
-    return enrichedActivities;
-  }, { operationName: 'Get Personalized Feed' });
+  try {
+    return await executeFirestoreOperation(async () => {
+      // 1. Get list of users the current user follows
+      const following = await getUserFollowing(userId, 100); // Get up to 100 follows
+      const followingIds = following.map(follow => follow.followingId);
+      
+      // 2. Get activities from followed users
+      let activities = [];
+      if (followingIds.length > 0) {
+        activities = await getFollowingActivityFeed(followingIds, limit);
+      }
+      
+      // 3. If not enough activities from follows, supplement with global feed
+      if (activities.length < limit) {
+        const globalActivities = await getRecentActivities(limit - activities.length);
+        // Filter out activities from users already in the feed
+        const existingUserIds = new Set(activities.map(a => a.userId));
+        const supplementalActivities = globalActivities.filter(
+          activity => !existingUserIds.has(activity.userId)
+        );
+        activities = [...activities, ...supplementalActivities];
+      }
+      
+      // 4. Enrich activities with engagement data
+      const enrichedActivities = await enrichActivitiesWithEngagement(activities, userId);
+      
+      return Array.isArray(enrichedActivities) ? enrichedActivities : [];
+    }, { operationName: 'Get Personalized Feed' });
+  } catch (error) {
+    console.error('Error in getPersonalizedFeed:', error);
+    return []; // Return empty array on error
+  }
 };
 
 /**
@@ -61,12 +66,17 @@ export const getPersonalizedFeed = async (userId, limit = 20) => {
  * @returns {Promise<Array>} - Array of activity objects with engagement data
  */
 export const getGlobalFeed = async (limit = 20, userId = null) => {
-  return executeFirestoreOperation(async () => {
-    const activities = await getRecentActivities(limit);
-    const enrichedActivities = await enrichActivitiesWithEngagement(activities, userId);
-    
-    return enrichedActivities;
-  }, { operationName: 'Get Global Feed' });
+  try {
+    return await executeFirestoreOperation(async () => {
+      const activities = await getRecentActivities(limit);
+      const enrichedActivities = await enrichActivitiesWithEngagement(activities, userId);
+      
+      return Array.isArray(enrichedActivities) ? enrichedActivities : [];
+    }, { operationName: 'Get Global Feed' });
+  } catch (error) {
+    console.error('Error in getGlobalFeed:', error);
+    return []; // Return empty array on error
+  }
 };
 
 /**

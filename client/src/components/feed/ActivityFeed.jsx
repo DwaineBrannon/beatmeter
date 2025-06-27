@@ -14,7 +14,7 @@ const ActivityFeed = () => {
   
   // Choose which feed to display
   const currentFeed = feedType === 'personalized' ? personalizedFeed : globalFeed;
-  const { activities, loading, error, refetch } = currentFeed;
+  const { activities = [], loading, error, refetch } = currentFeed || {};
 
   const handleLikeToggle = async (activityId, isCurrentlyLiked) => {
     try {
@@ -74,13 +74,13 @@ const ActivityFeed = () => {
       </div>
 
       <div className="activities">
-        {activities.length === 0 ? (
+        {(!activities || activities.length === 0) ? (
           <div className="no-activities">
             No activities to show. 
             {feedType === 'personalized' && ' Try following some users or check out the Discover feed!'}
           </div>
         ) : (
-          activities.map((activity) => (
+          (activities || []).map((activity) => (
             <div key={activity.id} className="activity-item">
               <div className="activity-content">
                 <div className="activity-text">

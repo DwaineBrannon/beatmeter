@@ -21,13 +21,9 @@ const firestore = getFirestore(app, 'userprofiles');
 const storage = getStorage(app);
 
 // Connect to emulators in development
-if (import.meta.env.DEV && typeof window !== 'undefined') {
-  // Check if we should use emulators (you can set this in your .env file)
-  const useEmulators = import.meta.env.VITE_USE_EMULATORS === 'true';
-  
-  if (useEmulators) {
-    console.log('🔧 Connecting to Firebase emulators...');
-    try {
+if (import.meta.env.DEV && import.meta.env.VITE_USE_EMULATORS === 'true') {
+  console.log('🔧 Connecting to Firebase emulators...');
+  try {
       // Connect to Firestore emulator
       if (!firestore._settings?.host?.includes('localhost')) {
         connectFirestoreEmulator(firestore, 'localhost', 8081);
@@ -46,13 +42,9 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
         console.log('✅ Connected to Storage emulator');
       }
       
-      console.log('✅ All emulators connected');
     } catch (error) {
       console.warn('⚠️ Could not connect to emulators:', error.message);
     }
-  } else {
-    console.log('🔧 Development mode, but emulators disabled');
-  }
 } else {
   console.log('🌐 Using production Firebase services');
 }

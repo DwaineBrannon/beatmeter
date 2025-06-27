@@ -56,6 +56,12 @@ export const getAlbumsFromPlaylist = async (playlistId: string, token: string) =
       headers: { Authorization: `Bearer ${token}` },
     }
   );
-  // You can process res.data.items to extract album info as needed
-  return res.data;
+
+  // Extract album info from each track
+  const items = res.data.items;
+  const albums = items
+    .map((item: any) => item.track?.album)
+    .filter(Boolean); // filter out null/undefined just in case
+
+  return albums; // now an array of album objects!
 };

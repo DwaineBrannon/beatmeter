@@ -10,7 +10,7 @@ import {
   updateProfile
 } from 'firebase/auth';
 import { auth, storage } from '../../../config/firebase';
-import { createOrUpdateUserProfile, getMergedUserProfile } from '../services/userProfileService';
+import { createOrUpdateUserProfile, getMergedUserProfile, quickConnectivityTest } from '../services/userProfileService';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const AuthContext = createContext();
@@ -166,7 +166,6 @@ export function AuthProvider({ children }) {
     try {
       // Test 1: Basic connectivity
       console.log('\n--- Test 1: Basic Connectivity ---');
-      const { quickConnectivityTest } = await import('../services/userProfileService');
       const connectivityResult = await quickConnectivityTest();
       console.log('Connectivity test result:', connectivityResult);
       
