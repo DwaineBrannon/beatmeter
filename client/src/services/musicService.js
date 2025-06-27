@@ -155,7 +155,7 @@ export const importAlbumFromSpotify = async (spotifyAlbumData) => {
  */
 export const batchImportAlbumsFromSpotify = async (spotifyAlbumsData) => {
   return executeFirestoreOperation(async () => {
-    const importPromises = spotifyAlbumsData.map(albumData => 
+    const importPromises = (spotifyAlbumsData || []).map(albumData => 
       importAlbumFromSpotify(albumData)
     );
     

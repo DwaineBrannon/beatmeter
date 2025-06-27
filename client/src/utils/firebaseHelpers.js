@@ -53,6 +53,43 @@ export const executeFirestoreOperation = async (operation, options = {}) => {
 };
 
 /**
+ * Execute a Firestore operation with timeout and retry logic, with fallback value support
+ * @param {Function} operation - The Firestore operation to perform
+ * @param {Object} options - Configuration options
+ * @param {number} options.timeoutMs - Timeout in milliseconds (default: 10000)
+ * @param {boolean} options.retry - Whether to retry on failure (default: true)
+ * @param {number} options.retryDelay - Delay before retry in milliseconds (default: 1000)
+ * @param {string} options.operationName - Name of operation for logging (default: 'Firestore operation')
+ * @param {*} options.fallbackValue - Value to return if operation fails (default: undefined, which causes error to be thrown)
+ * @returns {Promise<*>} - Result of the operation or fallback value
+ */
+export const executeFirestoreOperationSafe = async (operation, options = {}) => {
+  const {
+    timeoutMs = 10000,
+    retry = true,
+    retryDelay = 1000,
+    operationName = 'Firestore operation',
+    fallbackValue = undefined
+  } = options;
+
+  try {
+    return await executeFirestoreOperation(operation, {
+      timeoutMs,
+      retry,
+      retryDelay,
+      operationName
+    });
+  } catch (error) {
+    if (fallbackValue !== undefined) {
+      console.warn(`${operationName} failed, returning fallback value:`, fallbackValue);
+      logFirebaseError(error, operationName);
+      return fallbackValue;
+    }
+    throw error;
+  }
+};
+
+/**
  * Checks if the error is related to network connectivity
  * @param {Error} error - The error to check
  * @returns {boolean} - True if it's a network-related error

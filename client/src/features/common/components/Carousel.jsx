@@ -106,10 +106,14 @@ function Carousel({ items = [], renderItem }) {
         onTouchEnd={handleTouchEnd}
       >
         <CarouselContent>
-          {items.map((item, idx) => {
-            const key = item.id || idx;
-            return <div key={key}>{wrappedRenderItem(item)}</div>;
-          })}
+          {Array.isArray(items) && items.length > 0 ? (
+            items.map((item, idx) => {
+              const key = item.id || idx;
+              return <div key={key}>{wrappedRenderItem(item)}</div>;
+            })
+          ) : (
+            <div>Loading...</div>
+          )}
         </CarouselContent>
       </ScrollContainer>
 

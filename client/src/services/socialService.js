@@ -129,8 +129,8 @@ export const getMutualFollows = async (userId1, userId2) => {
       getUserFollowing(userId2)
     ]);
     
-    const user1FollowingIds = user1Following.map(follow => follow.followingId);
-    const user2FollowingIds = user2Following.map(follow => follow.followingId);
+    const user1FollowingIds = (user1Following || []).map(follow => follow.followingId);
+    const user2FollowingIds = (user2Following || []).map(follow => follow.followingId);
     
     const mutualFollowIds = user1FollowingIds.filter(id => user2FollowingIds.includes(id));
     return mutualFollowIds;
@@ -148,7 +148,7 @@ export const getFollowRecommendations = async (userId, limit = 10) => {
   return executeFirestoreOperation(async () => {
     // Get users that people the current user follows also follow
     const userFollowing = await getUserFollowing(userId);
-    const followingIds = userFollowing.map(follow => follow.followingId);
+    const followingIds = (userFollowing || []).map(follow => follow.followingId);
     
     if (followingIds.length === 0) {
       return [];

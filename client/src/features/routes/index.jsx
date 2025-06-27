@@ -12,8 +12,6 @@ import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
 import ProtectedRoute from '../auth/components/ProtectedRoute';
 import ProfileSetup from '../auth/components/ProfileSetup';
-import FirestoreDebugger from '../../components/debug/FirestoreDebugger';
-import FirestoreDebugPage from '../../components/debug/FirestoreDebugPage';
 
 // Route configuration with metadata
 export const routes = [
@@ -99,12 +97,6 @@ export const routes = [
     title: 'Your Collection | BeatMeter',
     isPublic: false, // This should be false in a real app as it requires authentication
     description: 'View and manage your music collection'
-  },  {
-    path: '/debug-firestore',
-    element: FirestoreDebugPage,
-    title: 'Firestore Debugger | BeatMeter',
-    isPublic: false, // Require authentication for debug tools
-    description: 'Debug Firestore 400 errors and test connectivity'
   }
 ];
 

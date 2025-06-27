@@ -1,14 +1,17 @@
-{  "firestore": {
+{
+  "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json",
     "database": "userprofiles"
-  },"functions": {
+  },
+  "functions": {
     "source": "functions",
-    "runtime":"nodejs20"
+    "runtime": "nodejs20"
   },
   "storage": {
     "rules": "storage.rules"
-  },  "emulators": {
+  },
+  "emulators": {
     "auth": {
       "port": 9099
     },

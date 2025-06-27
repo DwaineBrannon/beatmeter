@@ -80,7 +80,7 @@ export const getListWithAlbumDetails = async (listId) => {
     }
     
     // Get full album data for each album in the list
-    const albumPromises = list.albumIds.map(albumId => getAlbumById(albumId));
+    const albumPromises = (list.albumIds || []).map(albumId => getAlbumById(albumId));
     const albums = await Promise.all(albumPromises);
     
     // Filter out null results (albums that don't exist)
@@ -105,7 +105,7 @@ export const getUserListsWithCounts = async (userId, limit = 50) => {
     const lists = await getUserLists(userId, limit);
     
     // Add album count to each list
-    const listsWithCounts = lists.map(list => ({
+    const listsWithCounts = (lists || []).map(list => ({
       ...list,
       albumCount: list.albumIds ? list.albumIds.length : 0
     }));
@@ -125,7 +125,7 @@ export const getPublicListsWithPreviews = async (limit = 20) => {
     
     // Enrich each list with album count and preview albums
     const enrichedLists = await Promise.all(
-      lists.map(async (list) => {
+      (lists || []).map(async (list) => {
         const albumCount = list.albumIds ? list.albumIds.length : 0;
         
         // Get first 3 albums for preview

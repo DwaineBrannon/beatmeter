@@ -29,7 +29,7 @@ export const getPersonalizedFeed = async (userId, limit = 20) => {
     return await executeFirestoreOperation(async () => {
       // 1. Get list of users the current user follows
       const following = await getUserFollowing(userId, 100); // Get up to 100 follows
-      const followingIds = following.map(follow => follow.followingId);
+      const followingIds = (following || []).map(follow => follow.followingId);
       
       // 2. Get activities from followed users
       let activities = [];
@@ -41,11 +41,11 @@ export const getPersonalizedFeed = async (userId, limit = 20) => {
       if (activities.length < limit) {
         const globalActivities = await getRecentActivities(limit - activities.length);
         // Filter out activities from users already in the feed
-        const existingUserIds = new Set(activities.map(a => a.userId));
-        const supplementalActivities = globalActivities.filter(
+        const existingUserIds = new Set((activities || []).map(a => a.userId));
+        const supplementalActivities = (globalActivities || []).filter(
           activity => !existingUserIds.has(activity.userId)
         );
-        activities = [...activities, ...supplementalActivities];
+        activities = [...(activities || []), ...(supplementalActivities || [])];
       }
       
       // 4. Enrich activities with engagement data
@@ -124,7 +124,7 @@ const enrichActivitiesWithEngagement = async (activities, userId = null) => {
     }
     
     // Get engagement data for all activities in parallel
-    const enrichmentPromises = activities.map(async (activity) => {
+    const enrichmentPromises = (activities || []).map(async (activity) => {
       const [
         likeCount,
         commentCount,
@@ -166,7 +166,7 @@ export const getTrendingActivities = async (limit = 20, userId = null) => {
     const activitiesWithEngagement = await enrichActivitiesWithEngagement(recentActivities, userId);
     
     // Calculate engagement score and sort by it
-    const trendingActivities = activitiesWithEngagement
+    const trendingActivities = (activitiesWithEngagement || [])
       .map(activity => ({
         ...activity,
         engagementScore: (activity.engagement.likeCount * 2) + activity.engagement.commentCount
