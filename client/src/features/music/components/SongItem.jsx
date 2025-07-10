@@ -63,8 +63,8 @@ const SongItem = ({ track, currentRating, onRateSong, index }) => {
   return (
     <SongItemContainer>      <SongInfo>
         {typeof index === 'number' && <SongNumber>{index + 1}</SongNumber>}
-        <SongTitle>{track.title || 'Unknown Title'}</SongTitle>
-        {track.duration && <SongDuration>{track.duration}</SongDuration>}
+        <SongTitle>{track.name || track.title || 'Unknown Title'}</SongTitle>
+        {(track.duration_formatted || track.duration) && <SongDuration>{track.duration_formatted || track.duration}</SongDuration>}
       </SongInfo>
       <div style={{ minWidth: '120px', display: 'flex', justifyContent: 'flex-end' }}>
         <StarRating

@@ -2,11 +2,11 @@
 // Handles all music-related API calls to the backend (Firebase Functions)
 import axios from 'axios';
 
-// Firebase Functions URLs
-const isDev = import.meta.env.DEV;
-const FUNCTIONS_BASE = isDev 
-  ? 'http://localhost:5001/beatmeter-baf5a/us-central1' // Firebase emulator
-  : 'https://us-central1-beatmeter-baf5a.cloudfunctions.net'; // Production
+// Firebase Functions URLs - Use environment variables
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+  (import.meta.env.DEV 
+    ? 'http://localhost:5001/beatmeter-baf5a/us-central1/api'
+    : 'https://us-central1-beatmeter-baf5a.cloudfunctions.net/api');
 
 export const spotifyApi = {
   // Fetch new album releases from backend
@@ -23,19 +23,32 @@ export const spotifyApi = {
 
   // Get top albums (uses new releases as a proxy)
   getTopAlbums: async () => {
-    const res = await axios.get(`/api/music/top-albums`);
-    // Return albums array or fallback to items/data
-    return res.data.albums || res.data.items || res.data;
+    try {
+      const res = await axios.get(`/api/music/top-albums`);
+      // Backend now returns the albums array directly
+      const data = res.data;
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error('Error fetching top albums:', error);
+      return [];
+    }
   },
 
   // Get top songs (from Spotify Top 50 playlist)
   getTopSongs: async () => {
-    const res = await axios.get(`/api/music/top-songs`);
-    // Ensure each song has an albumId property for consistency
-    return (res.data.tracks || res.data.songs || res.data.items || []).map(song => ({
-      ...song,
-      albumId: song.albumId || song.id
-    }));
+    try {
+      const res = await axios.get(`/api/music/top-songs`);
+      // Backend now returns the tracks array directly
+      const data = res.data;
+      const songs = Array.isArray(data) ? data : [];
+      return songs.map(song => ({
+        ...song,
+        albumId: song.albumId || song.id
+      }));
+    } catch (error) {
+      console.error('Error fetching top songs:', error);
+      return [];
+    }
   },
 
   // Get album details by Spotify album ID

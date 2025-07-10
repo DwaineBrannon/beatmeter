@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getSpotifyToken = void 0;
+exports.getAlbumsFromPlaylist = exports.TOP_ALBUMS_PLAYLIST_IDS = exports.getSpotifyToken = void 0;
 const axios_1 = __importDefault(require("axios"));
 /**
  * Get Spotify access token using client credentials
@@ -31,4 +31,35 @@ const getSpotifyToken = async () => {
     }
 };
 exports.getSpotifyToken = getSpotifyToken;
+/**
+ * === SPOTIFY PLAYLIST CONFIGURATION ===
+ *
+ * To change the playlists used for the Home page's Top Albums,
+ * update the playlist IDs below. You can add/remove playlist IDs as needed.
+ * These IDs are used in API calls to fetch album data from Spotify.
+ */
+exports.TOP_ALBUMS_PLAYLIST_IDS = [
+    '37i9dQZF1DXcBWIGoYBM5M',
+    '37i9dQZF1DXcBWIGoYBM5M',
+    '37i9dQZF1DXcBWIGoYBM5M',
+    '37i9dQZF1DXcBWIGoYBM5M',
+    '37i9dQZF1DXcBWIGoYBM5M', // Top 50 Australia
+];
+/**
+ * Fetch albums from a specific Spotify playlist
+ * @param playlistId Spotify playlist ID
+ * @param token Spotify access token
+ */
+const getAlbumsFromPlaylist = async (playlistId, token) => {
+    const res = await axios_1.default.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    // Extract album info from each track
+    const items = res.data.items;
+    const albums = items
+        .map((item) => item.track?.album)
+        .filter(Boolean); // filter out null/undefined just in case
+    return albums; // now an array of album objects!
+};
+exports.getAlbumsFromPlaylist = getAlbumsFromPlaylist;
 //# sourceMappingURL=spotifyApi.js.map

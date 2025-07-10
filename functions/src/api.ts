@@ -41,16 +41,17 @@ export const api = onRequest({ cors: true, secrets: ["SPOTIFY_CLIENT_ID", "SPOTI
           }
         );
 
-        // Transform the data to include track durations in mm:ss format
+        // Transform the data to flatten tracks structure and include track durations in mm:ss format
         const transformedAlbum = {
           ...response.data,
-          tracks: {
-            ...response.data.tracks,
-            items: response.data.tracks.items.map((track: any) => ({
-              ...track,
-              duration_formatted: millisToMinutesAndSeconds(track.duration_ms)
-            }))
-          }
+          // Extract the best quality image URL (usually the first/largest one)
+          imageUrl: response.data.images?.[0]?.url || null,
+          // Also keep artist name easily accessible
+          artistName: response.data.artists?.[0]?.name || 'Unknown Artist',
+          tracks: response.data.tracks.items.map((track: any) => ({
+            ...track,
+            duration_formatted: millisToMinutesAndSeconds(track.duration_ms)
+          }))
         };
         res.json(transformedAlbum);
         return;
@@ -106,22 +107,26 @@ export const api = onRequest({ cors: true, secrets: ["SPOTIFY_CLIENT_ID", "SPOTI
       return;
     }
     
-    // Handle /music/top-songs routes (uses provided playlist for debugging)
+    // Handle /music/top-songs routes (uses search API for popular tracks)
     if (pathParts[0] === 'music' && pathParts[1] === 'top-songs') {
       const limit = parseInt(req.query.limit as string) || 20;
       const token = await getSpotifyToken();
-      // Use the playlist ID you provided
-      const playlistId = '37i9dQZF1DX4zbZrYRGVam';
+      
       try {
+        // Use search API to get popular tracks
         const response = await axios.get(
-          `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}`,
+          `https://api.spotify.com/v1/search?q=year:2024&type=track&limit=${limit}&market=US`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
             }
           }
         );
-        res.json({ tracks: response.data.items });
+        
+        // Return just the tracks array from search results
+        const tracks = response.data.tracks?.items || [];
+        console.log(`Returning ${tracks.length} tracks from search`);
+        res.json(tracks);
       } catch (err: any) {
         // Log the full error object for debugging (stringify data for clarity)
         console.error('Spotify API error:', {
@@ -154,7 +159,15 @@ export const api = onRequest({ cors: true, secrets: ["SPOTIFY_CLIENT_ID", "SPOTI
           }
         }
       );
-      res.json(response.data);
+      
+      // Return just the albums array with imageUrl and artistName added for consistency
+      const albums = (response.data.albums?.items || []).map((album: any) => ({
+        ...album,
+        imageUrl: album.images?.[0]?.url || null,
+        artistName: album.artists?.[0]?.name || 'Unknown Artist'
+      }));
+      console.log(`Returning ${albums.length} albums`);
+      res.json(albums);
       return;
     }
     

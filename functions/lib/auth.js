@@ -50,7 +50,9 @@ exports.createUserProfilev1 = functions.auth.user().onCreate(async (user) => {
         profileComplete: false,
     };
     try {
-        await admin.firestore().collection('userprofiles').doc(uid).set(profileData);
+        // Use the default database (Firestore automatically uses 'userprofiles' if configured)
+        const db = admin.firestore();
+        await db.collection('userprofiles').doc(uid).set(profileData);
         functions.logger.info(`Profile created for user: ${uid}`);
     }
     catch (error) {

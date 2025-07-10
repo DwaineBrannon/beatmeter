@@ -96,9 +96,9 @@ function AlbumCard({ album, onClick, variant = 'carousel' }) {
   const navigate = useNavigate(); // Initialize navigate
 
   // Handle different data structures - Spotify API vs custom data
-  const imageUrl = album.img || (album.images && album.images[0]?.url) || 'https://via.placeholder.com/300';
+  const imageUrl = album.imageUrl || album.img || (album.images && album.images[0]?.url) || 'https://via.placeholder.com/300';
   const title = album.title || album.name;
-  const artist = album.artist || (album.artists ? album.artists.map(a => a.name).join(', ') : '');
+  const artist = album.artistName || album.artist || (album.artists ? album.artists.map(a => a.name).join(', ') : '');
   const albumId = album.id; // Assuming album.id is the unique identifier
 
   const handleCardClick = () => {

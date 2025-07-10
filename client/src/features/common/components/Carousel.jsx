@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import {
   CarouselContainer,
   GradientOverlay,
@@ -8,6 +8,21 @@ import {
 } from './Carousel.styles';
 
 function Carousel({ items = [], renderItem }) {
+  // Stronger safety checks for items
+  const safeItems = React.useMemo(() => {
+    if (!items) return [];
+    if (!Array.isArray(items)) {
+      console.warn('Carousel: items prop is not an array:', typeof items, items);
+      return [];
+    }
+    return items;
+  }, [items]);
+
+  // Add safety check for renderItem
+  if (!renderItem || typeof renderItem !== 'function') {
+    console.warn('Carousel: renderItem prop must be a function');
+    return <div>Carousel: Missing renderItem function</div>;
+  }
   const scrollRef = useRef(null);
   const containerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -84,7 +99,20 @@ function Carousel({ items = [], renderItem }) {
     setIsDragging(false);
   };
 
-  const wrappedRenderItem = (item) => renderItem(item, { dragged });
+  const wrappedRenderItem = (item) => {
+    try {
+      return renderItem(item, { dragged });
+    } catch (error) {
+      console.error('Carousel: Error rendering item:', error, item);
+      return <div>Error rendering item</div>;
+    }
+  };
+
+  // Additional safety check before render
+  if (!Array.isArray(safeItems)) {
+    console.error('Carousel: safeItems is not an array at render time:', safeItems);
+    return <div>Carousel: Data loading error</div>;
+  }
 
   return (
     <CarouselContainer
@@ -106,11 +134,21 @@ function Carousel({ items = [], renderItem }) {
         onTouchEnd={handleTouchEnd}
       >
         <CarouselContent>
-          {Array.isArray(items) && items.length > 0 ? (
-            items.map((item, idx) => {
-              const key = item.id || idx;
-              return <div key={key}>{wrappedRenderItem(item)}</div>;
-            })
+          {safeItems && safeItems.length > 0 ? (
+            safeItems.map((item, idx) => {
+              // Additional safety check for each item
+              if (!item && item !== 0) {
+                console.warn('Carousel: Skipping null/undefined item at index:', idx);
+                return null;
+              }
+              
+              const key = item.id || item.key || `carousel-item-${idx}`;
+              return (
+                <div key={key}>
+                  {wrappedRenderItem(item)}
+                </div>
+              );
+            }).filter(Boolean) // Remove any null items
           ) : (
             <div>Loading...</div>
           )}

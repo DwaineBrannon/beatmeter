@@ -25,6 +25,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createUserProfilev1 = exports.api = void 0;
 const admin = __importStar(require("firebase-admin"));
+// Initialize Firebase Admin
 admin.initializeApp();
 var api_1 = require("./api");
 Object.defineProperty(exports, "api", { enumerable: true, get: function () { return api_1.api; } });

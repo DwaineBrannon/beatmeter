@@ -28,16 +28,27 @@ function Home() {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const [albumsData, songsData] = await Promise.all([
+        const [albumsResponse, songsResponse] = await Promise.all([
           spotifyApi.getTopAlbums(),
           spotifyApi.getTopSongs()
         ]);
+        
+        // Ensure we always set arrays
+        const albumsData = Array.isArray(albumsResponse) ? albumsResponse : [];
+        const songsData = Array.isArray(songsResponse) ? songsResponse : [];
+        
+        console.log('Albums data:', albumsData);
+        console.log('Songs data:', songsData);
+        
         setAlbums(albumsData);
         setSongs(songsData);
         setError(null);
       } catch (error) {
         console.error('Error fetching data:', error);
         setError('Failed to load music data. Please try again.');
+        // Set empty arrays on error to prevent map errors
+        setAlbums([]);
+        setSongs([]);
       } finally {
         setIsLoading(false);
       }

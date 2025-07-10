@@ -71,7 +71,21 @@ function AlbumDetailsPage() {
         setError(null);
         const details = await fetchAlbumDetails(albumId);
         if (details) {
-          setAlbum(details);
+          // Ensure tracks is always an array
+          const safeDetails = {
+            ...details,
+            tracks: Array.isArray(details.tracks) 
+              ? details.tracks 
+              : (details.tracks?.items || []),
+            // Ensure imageUrl is available - fallback to images array if needed
+            imageUrl: details.imageUrl || details.images?.[0]?.url || null,
+            // Ensure artistName is available
+            artistName: details.artistName || details.artists?.[0]?.name || 'Unknown Artist'
+          };
+          
+          console.log('Album details loaded:', safeDetails);
+          setAlbum(safeDetails);
+          
           // Initialize ratings if they come from the backend/data source
           setAlbumRating(details.initialAlbumRating || null);
           setSongRatings(details.initialSongRatings || {});
@@ -239,7 +253,31 @@ function AlbumDetailsPage() {
   return (
     <PageContainer>
       <AlbumCoverContainer>
-        <AlbumCover src={album.imageUrl} alt={album.name} />
+        {album.imageUrl ? (
+          <AlbumCover 
+            src={album.imageUrl} 
+            alt={album.name}
+            onError={(e) => {
+              console.log('Image failed to load:', album.imageUrl);
+              e.target.style.display = 'none';
+              // Show fallback
+              e.target.nextSibling?.style?.setProperty('display', 'flex');
+            }}
+          />
+        ) : null}
+        <div style={{ 
+          width: '100%', 
+          height: '100%', 
+          backgroundColor: '#333', 
+          display: album.imageUrl ? 'none' : 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          color: '#666',
+          borderRadius: '8px',
+          fontSize: '14px'
+        }}>
+          {album.imageUrl ? 'Image failed to load' : 'No Image Available'}
+        </div>
       </AlbumCoverContainer>
       
       <AlbumTitle>{album.name}</AlbumTitle>
@@ -279,15 +317,19 @@ function AlbumDetailsPage() {
       <AlbumContent>
         <TracksHeader>Tracks</TracksHeader>
         <TracksList>
-          {album.tracks.map((track, index) => (
-            <SongItem
-              key={track.id}
-              track={track}
-              index={index}
-              currentRating={songRatings[track.id] !== undefined ? songRatings[track.id] : null}
-              onRateSong={handleRateSong}
-            />
-          ))}
+          {album.tracks && Array.isArray(album.tracks) ? (
+            album.tracks.map((track, index) => (
+              <SongItem
+                key={track.id}
+                track={track}
+                index={index}
+                currentRating={songRatings[track.id] !== undefined ? songRatings[track.id] : null}
+                onRateSong={handleRateSong}
+              />
+            ))
+          ) : (
+            <div>No tracks available</div>
+          )}
         </TracksList>
       </AlbumContent>
     </PageContainer>

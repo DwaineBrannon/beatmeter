@@ -17,7 +17,7 @@ const firebaseConfig = {
 // Initialize Firebase 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const firestore = getFirestore(app, 'userprofiles');
+const firestore = getFirestore(app); // Remove 'userprofiles' parameter
 const storage = getStorage(app);
 
 // Connect to emulators in development

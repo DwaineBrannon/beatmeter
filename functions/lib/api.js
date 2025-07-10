@@ -58,16 +58,17 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                // Transform the data to include track durations in mm:ss format
+                // Transform the data to flatten tracks structure and include track durations in mm:ss format
                 const transformedAlbum = {
                     ...response.data,
-                    tracks: {
-                        ...response.data.tracks,
-                        items: response.data.tracks.items.map((track) => ({
-                            ...track,
-                            duration_formatted: (0, common_1.millisToMinutesAndSeconds)(track.duration_ms)
-                        }))
-                    }
+                    // Extract the best quality image URL (usually the first/largest one)
+                    imageUrl: response.data.images?.[0]?.url || null,
+                    // Also keep artist name easily accessible
+                    artistName: response.data.artists?.[0]?.name || 'Unknown Artist',
+                    tracks: response.data.tracks.items.map((track) => ({
+                        ...track,
+                        duration_formatted: (0, common_1.millisToMinutesAndSeconds)(track.duration_ms)
+                    }))
                 };
                 res.json(transformedAlbum);
                 return;
@@ -108,18 +109,40 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             res.json(response.data);
             return;
         }
-        // Handle /music/top-songs routes (uses Spotify Top 50 playlist)
+        // Handle /music/top-songs routes (uses search API for popular tracks)
         if (pathParts[0] === 'music' && pathParts[1] === 'top-songs') {
-            const country = req.query.country || 'US';
             const limit = parseInt(req.query.limit) || 20;
             const token = await (0, spotifyApi_1.getSpotifyToken)();
-            const playlistId = country === 'US' ? '37i9dQZEVXbLRQDuF5jeBp' : '37i9dQZEVXbMDoHDwVN2tF';
-            const response = await axios_1.default.get(`https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=${limit}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            res.json({ tracks: response.data.items });
+            try {
+                // Use search API to get popular tracks
+                const response = await axios_1.default.get(`https://api.spotify.com/v1/search?q=year:2024&type=track&limit=${limit}&market=US`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                // Return just the tracks array from search results
+                const tracks = response.data.tracks?.items || [];
+                console.log(`Returning ${tracks.length} tracks from search`);
+                res.json(tracks);
+            }
+            catch (err) {
+                // Log the full error object for debugging (stringify data for clarity)
+                console.error('Spotify API error:', {
+                    message: err.message,
+                    status: err?.response?.status,
+                    headers: err?.response?.headers,
+                    data: JSON.stringify(err?.response?.data, null, 2)
+                });
+                res.status(500).json({
+                    error: 'Failed to fetch playlist from Spotify',
+                    details: {
+                        message: err.message,
+                        status: err?.response?.status,
+                        headers: err?.response?.headers,
+                        data: err?.response?.data
+                    }
+                });
+            }
             return;
         }
         // Update /music/top-albums to use new releases as a proxy for top albums
@@ -131,7 +154,14 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
                     'Authorization': `Bearer ${token}`
                 }
             });
-            res.json(response.data);
+            // Return just the albums array with imageUrl and artistName added for consistency
+            const albums = (response.data.albums?.items || []).map((album) => ({
+                ...album,
+                imageUrl: album.images?.[0]?.url || null,
+                artistName: album.artists?.[0]?.name || 'Unknown Artist'
+            }));
+            console.log(`Returning ${albums.length} albums`);
+            res.json(albums);
             return;
         }
         // --- USER COLLECTION ROUTES ---
