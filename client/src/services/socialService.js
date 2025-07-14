@@ -1,19 +1,13 @@
 import { 
-  followUser as followUserInDB, 
-  unfollowUser as unfollowUserInDB, 
-  isFollowing, 
-  getUserFollowing, 
-  getUserFollowers,
-  getFollowerCount,
-  getFollowingCount 
-} from '../database/followService.js';
+  followUser as followUserInDB
+} from './database/followService.js';
 import { 
   createFollowActivity 
-} from '../database/activityService.js';
+} from './database/activityService.js';
 import { 
   createOrUpdateUserProfile 
 } from '../features/auth/services/userProfileService.js';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
+import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';
 
 /**
  * Follow a user and update follower/following counts
@@ -76,10 +70,10 @@ const updateUserFollowerCounts = async (followingUserId, followerUserId) => {
     await Promise.all([
       createOrUpdateUserProfile(followingUserId, { 
         followerCount: followingUserFollowerCount 
-      }, true),
+      }, true, null),
       createOrUpdateUserProfile(followerUserId, { 
         followingCount: followerUserFollowingCount 
-      }, true)
+      }, true, null)
     ]);
   }, { operationName: 'Update User Follower Counts' });
 };

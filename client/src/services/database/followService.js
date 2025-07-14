@@ -9,8 +9,8 @@ import {
   limit, 
   serverTimestamp 
 } from 'firebase/firestore';
-import { firestore } from '../../config/firebase';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers';
+import { firestore } from '../../config/firebase.js';
+import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
 
 const COLLECTION_NAME = 'follows';
 

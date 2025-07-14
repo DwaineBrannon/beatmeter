@@ -1,37 +1,29 @@
 // Centralized user profile creation and update logic
-import { doc, setDoc, serverTimestamp, Timestamp, getDoc, collection, getDocs, query, limit } from 'firebase/firestore';
-import { firestore, auth } from '../../../config/firebase';
+import { doc, setDoc, serverTimestamp, Timestamp, getDoc } from 'firebase/firestore';
+import { firestore } from '../../../config/firebase';
 
 /**
  * Builds a user profile object for Firestore, storing only custom fields.
  * Auth fields (email, displayName, photoURL) are not duplicated in Firestore.
  * @param {Object} overrides - Optional fields to override
+ * @param {boolean} isNewUser - Whether this is for a new user (affects profileSetupComplete default)
  */
-export function buildUserProfileForFirestore(overrides = {}) {
+export function buildUserProfileForFirestore(overrides = {}, isNewUser = false) {
   return {
-    // Profile information
     bio: overrides.bio || '',
-    username: overrides.username || '',
-    birthDate: overrides.birthDate || null,
-    location: overrides.location || '',
-    personalLinks: overrides.personalLinks || [],
-    favoriteGenres: overrides.favoriteGenres || [],
-    
-    // Social counts (these will be updated by follow operations)
-    followerCount: overrides.followerCount || 0,
-    followingCount: overrides.followingCount || 0,
-    
-    // Legacy fields (kept for backward compatibility)
     musicCollection: overrides.musicCollection || [],
     rateLater: overrides.rateLater || [],
     followers: overrides.followers || [],
     following: overrides.following || [],
-    
-    // System fields
-    profileSetup: overrides.profileSetup || false,
-    createdAt: overrides.createdAt !== undefined ? overrides.createdAt : serverTimestamp(),
-    joinDate: overrides.joinDate !== undefined ? overrides.joinDate : serverTimestamp(),
-    
+    // For new users: false (needs setup), for existing users: don't set it (preserve existing state)
+    ...(isNewUser ? { profileSetupComplete: overrides.profileSetupComplete || false } : 
+        overrides.profileSetupComplete !== undefined ? { profileSetupComplete: overrides.profileSetupComplete } : {}),
+    createdAt: (overrides.createdAt instanceof Object && overrides.createdAt.constructor.name === 'FieldValue')
+      ? overrides.createdAt
+      : serverTimestamp(),
+    joinDate: (overrides.joinDate instanceof Object && overrides.joinDate.constructor.name === 'FieldValue')
+      ? overrides.joinDate
+      : serverTimestamp(),
     ...overrides // allow explicit override of any field
   };
 }
@@ -124,7 +116,7 @@ function isValidFirestoreDocId(docId) {
  * @param {Object} [overrides] - Optional fields to override
  * @param {boolean} [merge] - Whether to merge with existing doc
  */
-export async function createOrUpdateUserProfile(uid, overrides = {}, merge = true) {
+export async function createOrUpdateUserProfile(uid, overrides = {}, merge = true, currentUser = null) {
   if (!uid) throw new Error('No user UID provided');
 
   // Debug: Validate UID format
@@ -139,21 +131,15 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
   }
 
   // Debug: Check Firebase Auth state
-  try {
-    console.log('[DEBUG] Current Auth user:', auth.currentUser?.uid);
-    console.log('[DEBUG] Auth user authenticated:', !!auth.currentUser);
+  if (currentUser) {
+    console.log('[DEBUG] Current Auth user:', currentUser.uid);
+    console.log('[DEBUG] Auth user authenticated:', !!currentUser);
     
-    if (!auth.currentUser) {
-      console.warn('[DEBUG] No authenticated user found');
-      throw new Error('User must be authenticated before creating profile');
-    }
-    
-    if (auth.currentUser.uid !== uid) {
+    if (currentUser.uid !== uid) {
       throw new Error('UID mismatch: authenticated user UID does not match provided UID');
     }
-  } catch (e) {
-    console.warn('[DEBUG] Could not check auth state:', e);
-    throw new Error(`Authentication check failed: ${e.message}`);
+  } else {
+    console.warn('[DEBUG] No current user provided, skipping auth validation');
   }
 
   const userDocRef = doc(firestore, 'userprofiles', uid);
@@ -163,16 +149,27 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
     const existingDoc = await getDoc(userDocRef);
     let profileData;
     if (!existingDoc.exists()) {
-      // New user: set createdAt and joinDate
+      // New user: set createdAt, joinDate, and profileSetupComplete: false
       profileData = buildUserProfileForFirestore({
         ...overrides,
         createdAt: serverTimestamp(),
         joinDate: serverTimestamp(),
-      });
+      }, true); // isNewUser = true
     } else {
-      // Existing user: do not overwrite createdAt/joinDate
+      // Existing user: preserve existing fields, don't force profileSetupComplete
+      const existingData = existingDoc.data();
       const { createdAt: _createdAt, joinDate: _joinDate, ...restOverrides } = overrides;
-      profileData = buildUserProfileForFirestore(restOverrides);
+      
+      // If this is an existing user without profileSetupComplete field, 
+      // check if they have essential profile data to determine status
+      if (existingData.profileSetupComplete === undefined && !restOverrides.profileSetupComplete) {
+        // Auto-migrate existing users: if they have displayName, consider them setup
+        if (existingData.displayName || (currentUser && currentUser.displayName)) {
+          restOverrides.profileSetupComplete = true;
+        }
+      }
+      
+      profileData = buildUserProfileForFirestore(restOverrides, false); // isNewUser = false
     }
 
     const sanitizedProfile = sanitizeForFirestore(profileData);
@@ -239,45 +236,8 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
         }
       });
 
-      // Debug: Test minimal write first with timeout
-      console.log('Testing minimal document write...');
-      try {
-        const testDocRef = doc(firestore, 'userprofiles', `test-${Date.now()}`);
-        const minimalData = { test: 'minimal', timestamp: serverTimestamp() };
-        console.log('[TEST] Attempting setDoc with data:', minimalData);
-        
-        // Add timeout to prevent hanging
-        const writePromise = setDoc(testDocRef, minimalData);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Firestore write timeout after 10 seconds')), 10000)
-        );
-        
-        await Promise.race([writePromise, timeoutPromise]);
-        console.log('[TEST] Minimal write successful');
-        
-        // Clean up test document
-        try {
-          await setDoc(testDocRef, {}, { merge: false });
-          console.log('[TEST] Cleanup successful');
-        } catch (cleanupError) {
-          console.warn('[TEST] Cleanup failed:', cleanupError);
-        }
-      } catch (testError) {
-        console.error('[TEST] Minimal write failed:', testError);
-        console.error('[TEST] Error type:', typeof testError);
-        console.error('[TEST] Error details:', {
-          name: testError.name,
-          message: testError.message,
-          code: testError.code,
-          stack: testError.stack
-        });
-        
-        if (testError.message.includes('timeout')) {
-          throw new Error('Firestore write operation timed out - possible connectivity issue');
-        } else {
-          throw new Error(`Firestore access test failed: ${testError.message}`);
-        }
-      }
+      // Skip the minimal write test to avoid auth dependency issues
+      console.log('Skipping minimal document write test');
     }
 
     console.log('[setDoc] Attempting to write document with merge:', merge);
@@ -384,6 +344,7 @@ export async function getMergedUserProfile(user) {
   const userDocRef = doc(firestore, 'userprofiles', user.uid);
   const docSnap = await getDoc(userDocRef);
   const firestoreProfile = docSnap.exists() ? docSnap.data() : {};
+  
   // Merge Auth fields with Firestore custom fields
   return {
     uid: user.uid,
@@ -410,6 +371,7 @@ export async function debugFirestore() {
     
     // Test 2: Check authentication
     console.log('\nTest 2: Authentication Status');
+    const { auth } = await import('../../../config/firebase');
     console.log('Auth instance:', auth);
     console.log('Current user:', auth.currentUser);
     console.log('User authenticated:', !!auth.currentUser);
@@ -557,81 +519,69 @@ export async function quickConnectivityTest() {
 }
 
 /**
- * Test if the userprofiles collection exists and is accessible
+ * Test function to debug bio updates - call this from browser console
  */
-export async function testCollectionAccess() {
-  console.log('=== TESTING COLLECTION ACCESS ===');
+export async function testBioUpdate(testBio = 'Test bio from debug function') {
+  console.log('=== TESTING BIO UPDATE ===');
   
   try {
+    // Test 1: Check current auth user
+    const { auth } = await import('../../../config/firebase');
     if (!auth.currentUser) {
+      console.error('❌ No authenticated user found');
       return { success: false, error: 'No authenticated user' };
     }
     
-    console.log('1. Testing if we can reference the collection...');
-    const userDocRef = doc(firestore, 'userprofiles', 'test-doc');
-    console.log('✅ Collection reference created:', userDocRef.path);
+    console.log('✅ Current user:', auth.currentUser.uid);
     
-    console.log('2. Testing if we can write to the collection...');
+    // Test 2: Try updating just the bio
+    console.log(`🔧 Testing bio update with value: "${testBio}"`);
+    
     const testData = {
-      test: true,
-      timestamp: serverTimestamp(),
-      message: 'Collection access test'
+      bio: testBio,
+      profileSetupComplete: true
     };
     
-    await setDoc(userDocRef, testData);
-    console.log('✅ Write successful');
+    console.log('📤 Calling createOrUpdateUserProfile with:', testData);
     
-    console.log('3. Testing if we can read from the collection...');
+    await createOrUpdateUserProfile(auth.currentUser.uid, testData, true, auth.currentUser);
+    
+    console.log('✅ Bio update completed successfully');
+    
+    // Test 3: Read back the document to verify
+    console.log('📖 Reading back document to verify...');
+    const userDocRef = doc(firestore, 'userprofiles', auth.currentUser.uid);
     const docSnap = await getDoc(userDocRef);
+    
     if (docSnap.exists()) {
-      console.log('✅ Read successful:', docSnap.data());
+      const data = docSnap.data();
+      console.log('📋 Current document data:', data);
+      console.log('📝 Bio field value:', data.bio);
+      console.log('📝 Bio field type:', typeof data.bio);
+      
+      if (data.bio === testBio) {
+        console.log('✅ Bio update verification PASSED');
+        return { success: true, bio: data.bio };
+      } else {
+        console.error('❌ Bio update verification FAILED');
+        console.error(`Expected: "${testBio}"`);
+        console.error(`Found: "${data.bio}"`);
+        return { success: false, expected: testBio, found: data.bio };
+      }
     } else {
-      console.log('❌ Document not found after write');
+      console.error('❌ User document not found after update');
+      return { success: false, error: 'Document not found' };
     }
-    
-    console.log('4. Testing collection query...');
-    const collectionRef = collection(firestore, 'userprofiles');
-    const q = query(collectionRef, limit(1));
-    const querySnapshot = await getDocs(q);
-    
-    console.log('✅ Collection query successful, docs found:', querySnapshot.size);
-    
-    console.log('5. Cleaning up test document...');
-    await setDoc(userDocRef, {}, { merge: false });
-    console.log('✅ Cleanup successful');
-    
-    return { 
-      success: true, 
-      message: 'Collection is accessible and writable',
-      docsInCollection: querySnapshot.size
-    };
     
   } catch (error) {
-    console.error('❌ Collection access test failed:', error);
-    
-    let diagnosis = 'Unknown error';
-    if (error.code === 'permission-denied') {
-      diagnosis = 'Permission denied - check Firestore security rules';
-    } else if (error.code === 'not-found') {
-      diagnosis = 'Collection or database not found';
-    } else if (error.message.includes('400')) {
-      diagnosis = 'Bad request - likely data validation issue';
-    } else if (error.code === 'unavailable') {
-      diagnosis = 'Firestore service unavailable';
-    }
-    
-    return {
-      success: false,
-      error: error.message,
-      code: error.code,
-      diagnosis: diagnosis
-    };
+    console.error('❌ Bio update test failed:', error);
+    return { success: false, error: error.message, fullError: error };
   }
 }
 
-// Make debugFirestore, quickConnectivityTest, and testCollectionAccess available globally for browser console testing
+// Make debugFirestore, quickConnectivityTest, and testBioUpdate available globally for browser console testing
 if (typeof window !== 'undefined') {
   window.debugFirestore = debugFirestore;
   window.quickConnectivityTest = quickConnectivityTest;
-  window.testCollectionAccess = testCollectionAccess;
+  window.testBioUpdate = testBioUpdate;
 }

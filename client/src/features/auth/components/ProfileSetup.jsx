@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import styled from 'styled-components';
+import ProfileMigrationButton from './ProfileMigrationButton';
 
 // Styled components
 const ProfileSetupContainer = styled.div`
@@ -170,7 +171,7 @@ function ProfileSetup() {
         displayName,
         bio,
         profilePicture,
-        profileSetup: true // Mark profile as complete
+        profileSetupComplete: true // Mark profile as complete
       });
         // Redirect to profile page after successful setup
       navigate(`/profile/${displayName}`);
@@ -229,6 +230,9 @@ function ProfileSetup() {
           {loading ? 'Setting Up Profile...' : 'Complete Setup'}
         </SubmitButton>
       </SetupForm>
+      
+      {/* Temporary migration component for existing users */}
+      <ProfileMigrationButton />
     </ProfileSetupContainer>
   );
 }

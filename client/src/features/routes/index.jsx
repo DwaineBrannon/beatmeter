@@ -8,6 +8,7 @@ import CreateAccount from '../../pages/CreateAccount';
 import ForgotPassword from '../../pages/ForgotPassword';
 import Lists from '../../pages/Lists';
 import Music from '../../pages/Music.jsx';
+import SearchResults from '../../pages/SearchResults';
 import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
 import ProtectedRoute from '../auth/components/ProtectedRoute';
@@ -84,6 +85,13 @@ export const routes = [
     title: 'Music | BeatMeter',
     isPublic: true,
     description: 'Discover and manage your music collections'
+  },
+  {
+    path: '/search',
+    element: SearchResults,
+    title: 'Search Results | BeatMeter',
+    isPublic: true,
+    description: 'Search for music and users'
   },  {
     path: '/album/:albumId', // New route for album details
     element: AlbumDetailsPage,

@@ -199,6 +199,7 @@ function EditProfileModal({ isOpen, onClose, userData }) {
         displayName,
         bio,
         profilePicture,
+        profileSetupComplete: true // Ensure profile is marked as complete when editing
       });
       
       onClose(true); // Close with refresh flag

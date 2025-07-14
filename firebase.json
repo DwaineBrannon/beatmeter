@@ -1,8 +1,7 @@
 {
   "firestore": {
     "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json",
-    "database": "userprofiles"
+    "indexes": "firestore.indexes.json"
   },
   "functions": {
     "source": "functions",

@@ -13,6 +13,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/context/AuthContext";
 import { useOnboarding } from "../features/auth/hooks/useOnboarding";
+import { useFollowUser, useIsFollowing } from "../hooks/useSocialData";
+import { isFollowing } from "../services/database/followService";
 import { firestore } from "../config/firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 import { executeFirestoreOperation, logFirebaseError } from "../utils/firebaseHelpers";
@@ -59,6 +61,16 @@ function Profile() {
   const { currentUser } = useAuth();
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   
+  // Follow functionality hooks
+  const { followUser, unfollowUser, loading: followLoading, error: followError } = useFollowUser();
+  const [targetUserId, setTargetUserId] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Function to refresh profile data
+  const refreshProfileData = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
   // Use onboarding hook to check if profile is complete
   // If viewing own profile and profile is incomplete, redirect to profile setup
   const isOwnProfile = username === currentUser?.displayName;
@@ -69,6 +81,52 @@ function Profile() {
   
   const isLoggedIn = !!currentUser;
   const loggedInUsername = currentUser?.displayName || "Guest";
+
+  // Handle follow/unfollow actions
+  const handleFollowToggle = async () => {
+    if (!currentUser || !targetUserId || !userData) {
+      console.error('Missing required data for follow action:', {
+        currentUser: !!currentUser,
+        targetUserId,
+        userData: !!userData
+      });
+      return;
+    }
+
+    console.log('Starting follow action:', {
+      action: userData.isFollowing ? 'unfollow' : 'follow',
+      currentUserId: currentUser.uid,
+      targetUserId,
+      targetUsername: username
+    });
+
+    try {
+      if (userData.isFollowing) {
+        console.log('Unfollowing user...');
+        await unfollowUser(targetUserId);
+        console.log('Successfully unfollowed user');
+        // Update local state immediately
+        setUserData(prev => ({
+          ...prev,
+          isFollowing: false,
+          followersCount: Math.max(0, prev.followersCount - 1)
+        }));
+      } else {
+        console.log('Following user...');
+        await followUser(targetUserId, username);
+        console.log('Successfully followed user');
+        // Update local state immediately
+        setUserData(prev => ({
+          ...prev,
+          isFollowing: true,
+          followersCount: prev.followersCount + 1
+        }));
+      }
+    } catch (error) {
+      console.error('Error toggling follow status:', error);
+      // Optionally show user-friendly error message
+    }
+  };
   useEffect(() => {
     // Redirect to the logged-in user's profile if no username is provided
     if (!username && isLoggedIn) {
@@ -81,7 +139,8 @@ function Profile() {
   }, [username, isLoggedIn, currentUser, navigate]);
   
   useEffect(() => {
-    if (username) {      // Fetch user data and posts based on username
+    if (username) {      
+      // Fetch user data and posts based on username for all profiles (including own)
       async function fetchData() {
         try {
           console.log("Fetching profile data for:", username);
@@ -105,13 +164,41 @@ function Profile() {
           if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0];
             const userData = userDoc.data();
+            
+            // Store the target user's ID for follow functionality
+            setTargetUserId(userDoc.id);
+            
+            // Check if current user is following this user (only for other users)
+            let isCurrentUserFollowing = false;
+            if (currentUser && !isOwnProfile) {
+              try {
+                console.log('Checking follow status between:', currentUser.uid, 'and', userDoc.id);
+                isCurrentUserFollowing = await isFollowing(currentUser.uid, userDoc.id);
+                console.log('Follow status result:', isCurrentUserFollowing);
+              } catch (error) {
+                console.error('Error checking follow status:', error);
+              }
+            }
+            
+            console.log('Setting user data:', {
+              name: userData.displayName,
+              bio: userData.bio,
+              actualBio: userData.bio,
+              followersCount: userData.followerCount || 0,
+              followingCount: userData.followingCount || 0,
+              isFollowing: isCurrentUserFollowing
+            });
+            
+            console.log('Raw Firestore userData:', userData);
+            
             setUserData({
               name: userData.displayName || 'User',
               profilePicture: userData.profilePicture || 'https://via.placeholder.com/150',
               bio: userData.bio || (isOwnProfile ? 'Click "Edit Profile" to add your bio' : 'No bio available'),
-              followersCount: userData.followers?.length || 0,
-              followingCount: userData.following?.length || 0,
-              isFollowing: currentUser ? userData.followers?.includes(currentUser.uid) : false,
+              actualBio: userData.bio || '', // Store actual bio value
+              followersCount: userData.followerCount || 0,
+              followingCount: userData.followingCount || 0,
+              isFollowing: isCurrentUserFollowing,
               loggedAlbums: userData.musicCollection || [],
               profileSetup: !!(userData.bio && userData.profilePicture) // Track if profile has been set up
             });
@@ -161,8 +248,9 @@ function Profile() {
                 name: userProfileData.displayName || currentUser.displayName || 'User',
                 profilePicture: userProfileData.profilePicture || currentUser.photoURL || 'https://via.placeholder.com/150',
                 bio: userProfileData.bio || 'Click "Edit Profile" to add your bio',
-                followersCount: userProfileData.followers?.length || 0,
-                followingCount: userProfileData.following?.length || 0,
+                actualBio: userProfileData.bio || '', // Store actual bio value
+                followersCount: userProfileData.followerCount || 0,
+                followingCount: userProfileData.followingCount || 0,
                 isFollowing: false,
                 loggedAlbums: userProfileData.musicCollection || [],
                 profileSetup: !!(userProfileData.bio && userProfileData.profilePicture)
@@ -180,6 +268,7 @@ function Profile() {
                 name: currentUser.displayName || 'User',
                 profilePicture: currentUser.photoURL || 'https://via.placeholder.com/150',
                 bio: 'Click "Edit Profile" to add your bio',
+                actualBio: '', // No bio for new profile
                 followersCount: 0,
                 followingCount: 0,
                 isFollowing: false,
@@ -201,6 +290,7 @@ function Profile() {
             name: "Error",
             profilePicture: 'https://via.placeholder.com/150',
             bio: 'There was a problem loading this profile. Please try refreshing the page.',
+            actualBio: '', // No bio for error state
             followersCount: 0,
             followingCount: 0,
             isFollowing: false,
@@ -217,6 +307,7 @@ function Profile() {
         name: "GagaLover",
         profilePicture: "https://via.placeholder.com/150",
         bio: "Gaga is Queen. Wish she wasn't a zionist.. :(",
+        actualBio: "Gaga is Queen. Wish she wasn't a zionist.. :(", // Same as display bio for mock data
         followersCount: 69,
         followingCount: 420,
         isFollowing: false,
@@ -236,7 +327,7 @@ function Profile() {
       setUserData(mockUserData);
       setPosts(mockPosts);
     }
-  }, [username, currentUser, navigate]);
+  }, [username, currentUser, navigate, isOwnProfile, refreshTrigger]);
 
   const filteredPosts = posts.filter((post) => {
     if (filter === "All") return true;
@@ -261,41 +352,36 @@ function Profile() {
             <EditProfileButton onClick={() => setIsEditProfileModalOpen(true)}>
               {userData.profileSetup ? "Edit Profile" : "Complete Profile Setup"}
             </EditProfileButton>
-          ) : (            <FollowButton $isFollowing={userData.isFollowing}>
-              {userData.isFollowing ? "Unfollow" : "Follow"}
-            </FollowButton>
+          ) : (
+            <>
+              <FollowButton 
+                $isFollowing={userData.isFollowing}
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+              >
+                {followLoading ? 'Loading...' : (userData.isFollowing ? "Following" : "Follow")}
+              </FollowButton>
+              {followError && (
+                <div style={{ color: '#e74c3c', fontSize: '14px', marginTop: '5px' }}>
+                  Error: {followError}
+                </div>
+              )}
+            </>
           )}
             {isEditProfileModalOpen && (
             <EditProfileModal 
               isOpen={isEditProfileModalOpen}
               onClose={(refresh) => {
                 setIsEditProfileModalOpen(false);
+                // Refresh the profile data after modal closes to get updated information
                 if (refresh) {
-                  // Re-fetch user data after profile update
-                  const fetchUpdatedUserData = async () => {                    try {
-                      const userDoc = await getDoc(doc(firestore, 'userprofiles', currentUser.uid));
-                      if (userDoc.exists()) {
-                        const userData = userDoc.data();
-                        setUserData({
-                          name: userData.displayName || 'User',
-                          profilePicture: userData.profilePicture || 'https://via.placeholder.com/150',
-                          bio: userData.bio || 'Click "Edit Profile" to add your bio',
-                          followersCount: userData.followers?.length || 0,
-                          followingCount: userData.following?.length || 0,
-                          isFollowing: currentUser ? userData.followers?.includes(currentUser.uid) : false,
-                          loggedAlbums: userData.musicCollection || [],
-                          profileSetup: !!(userData.bio && userData.profilePicture) // Update profile setup status
-                        });
-                      }
-                    } catch (error) {
-                      console.error("Error fetching updated profile data:", error);
-                    }
-                  };
-                  fetchUpdatedUserData();
+                  console.log('Refreshing profile data after modal close');
+                  refreshProfileData();
                 }
-              }}              userData={{
+              }}
+              userData={{
                 name: userData.name,
-                bio: userData.bio,
+                bio: userData.actualBio || '', // Use actualBio for editing, not the display text
                 profilePicture: userData.profilePicture,
                 isNewProfile: !userData.profileSetup
               }}

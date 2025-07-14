@@ -60,7 +60,7 @@ export function useProfileCreation() {
         
         // Update the document if there are missing fields
         if (Object.keys(updates).length > 0) {
-          await createOrUpdateUserProfile(currentUser, updates, true);
+          await createOrUpdateUserProfile(currentUser.uid, updates, true, currentUser);
         }
       } catch (error) {
         console.error('Error ensuring user profile:', error);

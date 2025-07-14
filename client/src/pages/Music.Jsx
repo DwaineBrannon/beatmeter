@@ -87,9 +87,9 @@ const Music = () => {
     fetchTopAlbums(currentPage);
   }, [currentPage]);
 
-  // Handle search from URL parameters (e.g., from NavBar search)
+  // Handle search from URL parameters (e.g., from old links or direct navigation)
   useEffect(() => {
-    const searchQuery = searchParams.get('search');
+    const searchQuery = searchParams.get('search') || searchParams.get('q');
     if (searchQuery) {
       setSearchTerm(searchQuery);
       searchMusic(searchQuery);

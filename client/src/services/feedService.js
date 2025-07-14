@@ -4,19 +4,19 @@ import {
   getUserActivities,
   getActivitiesByType,
   ACTIVITY_TYPES
-} from '../database/activityService.js';
+} from './database/activityService.js';
 import { 
   getActivityLikeCount,
   hasUserLikedActivity
-} from '../database/activityLikeService.js';
+} from './database/activityLikeService.js';
 import { 
   getActivityComments,
   getActivityCommentCount
-} from '../database/activityCommentService.js';
+} from './database/activityCommentService.js';
 import { 
   getUserFollowing
-} from '../database/followService.js';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
+} from './database/followService.js';
+import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';
 
 /**
  * Get personalized feed for a user (activities from people they follow)

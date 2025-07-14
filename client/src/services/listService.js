@@ -8,16 +8,34 @@ import {
   addAlbumToList,
   removeAlbumFromList,
   reorderListAlbums
-} from '../database/listService.js';
+} from './database/listService.js';
 import { 
   createListActivity,
   deleteActivitiesByTarget,
   ACTIVITY_TYPES
-} from '../database/activityService.js';
+} from './database/activityService.js';
 import { 
   getAlbumById 
-} from '../database/albumService.js';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
+} from './database/albumService.js';
+import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';ist as createListInDB,
+  updateList as updateListInDB,
+  deleteList as deleteListInDB,
+  getListById,
+  getUserLists,
+  getPublicLists,
+  addAlbumToList,
+  removeAlbumFromList,
+  reorderListAlbums
+} from '../database/listService';
+import { 
+  createListActivity,
+  deleteActivitiesByTarget,
+  ACTIVITY_TYPES
+} from '../database/activityService';
+import { 
+  getAlbumById 
+} from '../database/albumService';
+import { executeFirestoreOperation } from '../../utils/firebaseHelpers';
 
 /**
  * Create a new list and associated activity

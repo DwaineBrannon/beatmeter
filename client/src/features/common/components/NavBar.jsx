@@ -1,13 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../../auth/context/AuthContext";
+import QuickSearch from './QuickSearch';
 import {
   NavBarRoot,
   NavBarInner,
   NavBarLeft,
   NavBarLogo,
-  NavBarSearchForm,
-  NavBarSearchInput,
   NavBarLinks,
   NavBarLink,
   NavBarLinkCTA,
@@ -38,14 +37,6 @@ function NavBar() {
   const navigate = useNavigate();
   const avatarUrl = user.avatarUrl || null;
   const userInitials = user.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) : 'U';
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Navigate to /music with the search query as a URL parameter
-      navigate(`/music?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
   // Handle sign out click
   const handleSignOut = async (e) => {
     e.preventDefault();
@@ -101,14 +92,10 @@ function NavBar() {
           <NavBarLogo to="/">
             beatmeter
           </NavBarLogo>
-          <NavBarSearchForm onSubmit={handleSearch}>
-            <NavBarSearchInput
-              type="search"
-              placeholder="Search Music..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </NavBarSearchForm>
+          <QuickSearch 
+            value={searchQuery}
+            onChange={setSearchQuery}
+          />
         </NavBarLeft>        {/* Hamburger icon for mobile */}
         <NavBarHamburger
           onClick={() => setMobileOpen((open) => !open)}

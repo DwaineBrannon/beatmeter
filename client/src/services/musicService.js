@@ -3,19 +3,19 @@ import {
   getAlbumById, 
   updateAlbumRating, 
   removeAlbumRating 
-} from '../database/albumService.js';
+} from './database/albumService.js';
 import { 
   createRating, 
   updateRating as updateRatingData, 
   deleteRating, 
   getUserAlbumRating 
-} from '../database/ratingService.js';
+} from './database/ratingService.js';
 import { 
   createRatingActivity, 
   deleteActivitiesByTarget, 
   ACTIVITY_TYPES 
-} from '../database/activityService.js';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers.js';
+} from './database/activityService.js';
+import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';
 
 /**
  * Complete workflow to rate an album

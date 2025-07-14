@@ -54,7 +54,7 @@ export function AuthProvider({ children }) {
   async function ensureUserProfile(user) {
     if (!user) return null;
     try {
-      await createOrUpdateUserProfile(user.uid, {}, true); // merge: true
+      await createOrUpdateUserProfile(user.uid, {}, true, user); // merge: true, pass current user
       console.log('[ensureUserProfile] Successfully called createOrUpdateUserProfile for UID:', user.uid);
       return user;
     } catch (error) {
@@ -116,8 +116,9 @@ export function AuthProvider({ children }) {
           delete userData.profilePicture;
         }
       }
+      
       // Only update custom fields in Firestore
-      await createOrUpdateUserProfile(currentUser.uid, userData, true);
+      await createOrUpdateUserProfile(currentUser.uid, userData, true, currentUser);
       // Refresh merged profile
       const mergedProfile = await getMergedUserProfile(auth.currentUser);
       setCurrentUser(mergedProfile);
@@ -136,7 +137,7 @@ export function AuthProvider({ children }) {
     console.log("Current user:", currentUser.uid, currentUser.email);
     
     try {
-      await createOrUpdateUserProfile(currentUser.uid, { profileSetup: false }, true);
+      await createOrUpdateUserProfile(currentUser.uid, { profileSetup: false }, true, currentUser);
       await new Promise(resolve => setTimeout(resolve, 1000));
       console.log("User profile created/reset successfully!");
       return "Success!";
@@ -180,7 +181,7 @@ export function AuthProvider({ children }) {
         profileSetup: true
       };
       
-      await createOrUpdateUserProfile(currentUser.uid, minimalOverrides, true);
+      await createOrUpdateUserProfile(currentUser.uid, minimalOverrides, true, currentUser);
       console.log('✅ Profile creation successful');
       
       return { success: true, message: 'Profile creation successful' };

@@ -7,5 +7,8 @@ export * from './useSocialData.js';
 // Activity feed hooks
 export * from './useFeedData.js';
 
+// Search hooks
+export * from './useSearch.js';
+
 // List management hooks
 export * from './useListData.js';

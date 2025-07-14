@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { firestore } from '../../../config/firebase';
 
 /**
@@ -30,8 +30,34 @@ export function useOnboarding({ redirectOnIncomplete = false, redirectPath = '/p
         
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          // Consider profile complete if it has bio and profile picture
-          const profileComplete = !!(userData.bio && userData.profilePicture && userData.profileSetup !== false);
+          
+          // Smart profile completion detection:
+          let profileComplete;
+          
+          if (userData.profileSetupComplete !== undefined) {
+            // If the field exists, use it (new flow)
+            profileComplete = userData.profileSetupComplete === true;
+          } else {
+            // Legacy users: auto-migrate if they have essential data
+            const hasDisplayName = userData.displayName || currentUser?.displayName;
+            const hasBasicProfile = hasDisplayName && (userData.bio !== undefined || userData.profilePicture);
+            
+            if (hasBasicProfile) {
+              // Auto-migrate existing user: they have enough profile data
+              profileComplete = true;
+              // Optionally update their record to prevent future checks
+              try {
+                const userDocRef = doc(firestore, 'userprofiles', currentUser.uid);
+                await setDoc(userDocRef, { profileSetupComplete: true }, { merge: true });
+              } catch (error) {
+                console.warn('Could not auto-migrate user profile status:', error);
+              }
+            } else {
+              // User needs proper setup
+              profileComplete = false;
+            }
+          }
+          
           setIsProfileComplete(profileComplete);
           
           // Redirect if profile is incomplete and redirectOnIncomplete is true
@@ -39,6 +65,7 @@ export function useOnboarding({ redirectOnIncomplete = false, redirectPath = '/p
             navigate(redirectPath);
           }
         } else {
+          // No profile document exists, definitely incomplete
           setIsProfileComplete(false);
           if (redirectOnIncomplete) {
             navigate(redirectPath);
@@ -46,6 +73,7 @@ export function useOnboarding({ redirectOnIncomplete = false, redirectPath = '/p
         }
       } catch (error) {
         console.error("Error checking profile status:", error);
+        setIsProfileComplete(false);
       } finally {
         setLoading(false);
       }
