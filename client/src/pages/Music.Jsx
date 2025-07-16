@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AlbumCard from '../features/music/components/AlbumCard';
+import { spotifyApi } from '../api/spotify';
 import {
   MusicPageContainer,
   MusicHeader,
@@ -17,7 +18,6 @@ import {
   LoadingSpinner,
   ErrorMessage
 } from './Music.styles';
-import { apiUrl } from '../utils/api';
 
 const Music = () => {
   const [searchParams] = useSearchParams();
@@ -37,21 +37,11 @@ const Music = () => {
     setError(null);
     
     try {
-      const offset = (page - 1) * itemsPerPage;
-      
-      const response = await fetch(
-        apiUrl(`/music/new-releases?limit=${itemsPerPage}&offset=${offset}`)
-      );
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch albums');
-      }
-      
-      const data = await response.json();
-      setAlbums(Array.isArray(data.albums) ? data.albums : []);
+      const albumsData = await spotifyApi.getTopAlbums();
+      setAlbums(Array.isArray(albumsData) ? albumsData : []);
     } catch (error) {
-      setError('Failed to load albums. Please try again.');
-      console.error('Error fetching albums:', error);
+      console.error('Full error object:', error);
+      setError(`Failed to load albums: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -65,19 +55,15 @@ const Music = () => {
     setError(null);
     
     try {
-      const response = await fetch(
-        apiUrl(`/music/search?q=${encodeURIComponent(query)}&type=album&limit=${itemsPerPage}`)
-      );
+      const searchData = await spotifyApi.searchMusic(query, 'album', itemsPerPage, 0);
       
-      if (!response.ok) {
-        throw new Error('Failed to search');
-      }
+      // Handle different response structures - searchMusic may return different formats
+      const albums = searchData.albums?.items || searchData.items || searchData || [];
       
-      const data = await response.json();
-      setSearchResults(Array.isArray(data.albums) ? data.albums : []);
+      setSearchResults(Array.isArray(albums) ? albums : []);
     } catch (error) {
-      setError('Failed to search. Please try again.');
-      console.error('Error searching:', error);
+      console.error('Search error:', error);
+      setError(`Failed to search: ${error.message}`);
     } finally {
       setIsSearching(false);
     }

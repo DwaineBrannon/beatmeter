@@ -9,16 +9,19 @@
 // All will show both reviews and notes
 // there will also be a feed called "Music" which will show the albums that have been logged by the user, in a grid or list layout. 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../features/auth/context/AuthContext";
 import { useOnboarding } from "../features/auth/hooks/useOnboarding";
 import { useFollowUser, useIsFollowing } from "../hooks/useSocialData";
+import { useUserPosts } from "../hooks/usePostData";
 import { isFollowing } from "../services/database/followService";
 import { firestore } from "../config/firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc } from "firebase/firestore";
 import { executeFirestoreOperation, logFirebaseError } from "../utils/firebaseHelpers";
 import EditProfileModal from "../features/auth/components/EditProfileModal";
+import CreatePostModal from "../features/common/components/CreatePostModal";
+import PostItem from "../features/common/components/PostItem";
 import {
   ProfilePageContainer,
   ProfileHeaderContainer,
@@ -54,12 +57,13 @@ function Profile() {
   const { username } = useParams();
   const navigate = useNavigate();
   const [userData, setUserData] = useState(null);
-  const [posts, setPosts] = useState([]);
   const [filter, setFilter] = useState("All");
   const [musicView, setMusicView] = useState("Grid"); // "Grid" or "List"
   // Use the real auth context instead of simulated login state
   const { currentUser } = useAuth();
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Follow functionality hooks
   const { followUser, unfollowUser, loading: followLoading, error: followError } = useFollowUser();
@@ -73,7 +77,10 @@ function Profile() {
   
   // Use onboarding hook to check if profile is complete
   // If viewing own profile and profile is incomplete, redirect to profile setup
-  const isOwnProfile = username === currentUser?.displayName;
+  const isOwnProfile = useMemo(() => 
+    username === currentUser?.displayName, 
+    [username, currentUser?.displayName]
+  );
   useOnboarding({ 
     redirectOnIncomplete: isOwnProfile,
     redirectPath: '/profile-setup'
@@ -81,6 +88,9 @@ function Profile() {
   
   const isLoggedIn = !!currentUser;
   const loggedInUsername = currentUser?.displayName || "Guest";
+
+  // Use the post data hook
+  const { posts, loading: postsLoading, error: postsError, refreshPosts, deletePost } = useUserPosts(targetUserId, filter);
 
   // Handle follow/unfollow actions
   const handleFollowToggle = async () => {
@@ -139,10 +149,14 @@ function Profile() {
   }, [username, isLoggedIn, currentUser, navigate]);
   
   useEffect(() => {
+    let isCancelled = false;
+    
     if (username) {      
       // Fetch user data and posts based on username for all profiles (including own)
       async function fetchData() {
         try {
+          if (isCancelled) return; // Exit early if cancelled
+          
           console.log("Fetching profile data for:", username);
           
           // Query userprofiles collection to find the user with the matching displayName
@@ -180,6 +194,8 @@ function Profile() {
               }
             }
             
+            if (isCancelled) return; // Check again before setting state
+            
             console.log('Setting user data:', {
               name: userData.displayName,
               bio: userData.bio,
@@ -190,26 +206,24 @@ function Profile() {
             });
             
             console.log('Raw Firestore userData:', userData);
+            console.log('Profile picture from Firestore:', userData.profilePicture);
+            console.log('Current user photoURL:', currentUser?.photoURL);
+            
+            // Determine the profile picture to use
+            let profilePictureUrl = userData.profilePicture || currentUser?.photoURL;
+            console.log('Final profile picture URL:', profilePictureUrl);
             
             setUserData({
               name: userData.displayName || 'User',
-              profilePicture: userData.profilePicture || 'https://via.placeholder.com/150',
+              profilePicture: profilePictureUrl || 'Artpop_cover.png',
               bio: userData.bio || (isOwnProfile ? 'Click "Edit Profile" to add your bio' : 'No bio available'),
               actualBio: userData.bio || '', // Store actual bio value
               followersCount: userData.followerCount || 0,
               followingCount: userData.followingCount || 0,
               isFollowing: isCurrentUserFollowing,
               loggedAlbums: userData.musicCollection || [],
-              profileSetup: !!(userData.bio && userData.profilePicture) // Track if profile has been set up
+              profileSetup: !!(userData.bio && (userData.profilePicture || (isOwnProfile && currentUser?.photoURL))) // Check both Firestore and Auth for profile picture
             });
-
-            // Fetch posts (this would need to be implemented with a Firestore collection)
-            // For now, we'll use mock data
-            const mockPosts = [
-              { id: 1, title: "First Post", content: "This is a review.", type: "Reviews" },
-              { id: 2, title: "Quick Note", content: "This is a note.", type: "Notes" },
-            ];
-            setPosts(mockPosts);
           } else if (isOwnProfile) {
             // If viewing own profile but no document found with matching displayName
             // This might happen if the user just signed up and their profile was created by the cloud function
@@ -244,18 +258,25 @@ function Profile() {
                 userProfileData.displayName = currentUser.displayName;
               }
               
+              console.log('User profile data from UID lookup:', userProfileData);
+              console.log('Profile picture from UID lookup:', userProfileData.profilePicture);
+              console.log('Current user photoURL (fallback):', currentUser?.photoURL);
+              
+              // Determine the profile picture to use
+              let profilePictureUrl = userProfileData.profilePicture || currentUser?.photoURL;
+              console.log('Final profile picture URL (UID lookup):', profilePictureUrl);
+              
               setUserData({
                 name: userProfileData.displayName || currentUser.displayName || 'User',
-                profilePicture: userProfileData.profilePicture || currentUser.photoURL || 'https://via.placeholder.com/150',
+                profilePicture: profilePictureUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=',
                 bio: userProfileData.bio || 'Click "Edit Profile" to add your bio',
                 actualBio: userProfileData.bio || '', // Store actual bio value
                 followersCount: userProfileData.followerCount || 0,
                 followingCount: userProfileData.followingCount || 0,
                 isFollowing: false,
                 loggedAlbums: userProfileData.musicCollection || [],
-                profileSetup: !!(userProfileData.bio && userProfileData.profilePicture)
+                profileSetup: !!(userProfileData.bio && (userProfileData.profilePicture || currentUser?.photoURL))
               });
-              setPosts([]);
               
               // Redirect to the correct URL with the displayName if needed
               if (userProfileData.displayName && userProfileData.displayName !== username) {
@@ -266,7 +287,7 @@ function Profile() {
               console.log("No user profile found, showing empty profile view");
               setUserData({
                 name: currentUser.displayName || 'User',
-                profilePicture: currentUser.photoURL || 'https://via.placeholder.com/150',
+                profilePicture: currentUser.photoURL || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=',
                 bio: 'Click "Edit Profile" to add your bio',
                 actualBio: '', // No bio for new profile
                 followersCount: 0,
@@ -275,7 +296,6 @@ function Profile() {
                 loggedAlbums: [],
                 profileSetup: false
               });
-              setPosts([]);
             }
           } else {
             console.error("User not found");
@@ -283,12 +303,13 @@ function Profile() {
             navigate('/'); // Redirect to home if user not found
           }
         } catch (error) {
+          if (isCancelled) return;
           logFirebaseError(error, "Fetching profile data");
           
           // Show user-friendly error message
           setUserData({
             name: "Error",
-            profilePicture: 'https://via.placeholder.com/150',
+            profilePicture: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=',
             bio: 'There was a problem loading this profile. Please try refreshing the page.',
             actualBio: '', // No bio for error state
             followersCount: 0,
@@ -297,50 +318,53 @@ function Profile() {
             loggedAlbums: [],
             profileSetup: false
           });
+        } finally {
+          setIsLoading(false);
         }
       }
 
       fetchData();
-    } else {
-      // Fallback mock data for development
-      const mockUserData = {
-        name: "GagaLover",
-        profilePicture: "https://via.placeholder.com/150",
-        bio: "Gaga is Queen. Wish she wasn't a zionist.. :(",
-        actualBio: "Gaga is Queen. Wish she wasn't a zionist.. :(", // Same as display bio for mock data
-        followersCount: 69,
-        followingCount: 420,
-        isFollowing: false,
-        loggedAlbums: [
-          { id: 1, title: "Chromatica", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
-          { id: 2, title: "Born This Way", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
-          { id: 3, title: "The Fame Monster", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
-          { id: 4, title: "ARTPOP", artist: "Lady Gaga", cover: "https://via.placeholder.com/100" },
-        ],
-      };
-
-      const mockPosts = [
-        { id: 1, title: "Mock Post 1", content: "This is a mock review.", type: "Reviews" },
-        { id: 2, title: "Mock Post 2", content: "This is a mock note.", type: "Notes" },
-      ];
-
-      setUserData(mockUserData);
-      setPosts(mockPosts);
     }
-  }, [username, currentUser, navigate, isOwnProfile, refreshTrigger]);
+    
+    // Cleanup function
+    return () => {
+      isCancelled = true;
+    };
+  }, [username, currentUser?.uid, currentUser?.displayName, refreshTrigger]); // Optimized dependencies
 
-  const filteredPosts = posts.filter((post) => {
-    if (filter === "All") return true;
-    return post.type === filter;
-  });
+  const handlePostCreated = () => {
+    // Refresh posts when a new post is created
+    refreshPosts();
+  };
+
+  const handlePostDeleted = async (postId) => {
+    return await deletePost(postId);
+  };
 
   if (!userData) return <div>Loading...</div>;
 
   const isCurrentUser = isLoggedIn && username === loggedInUsername;
+  
+  // Add error handling for profile picture
+  const handleProfilePictureError = (e) => {
+    console.error('Profile picture failed to load:', e.target.src);
+    console.log('Attempting to load fallback image...');
+    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=';
+  };
+  
+  const handleProfilePictureLoad = () => {
+    console.log('Profile picture loaded successfully:', userData?.profilePicture);
+  };
+  
   return (
     <ProfilePageContainer>
       <ProfileHeaderContainer>
-        <ProfilePicture src={userData.profilePicture} alt={`${userData.name}'s profile`} />
+        <ProfilePicture 
+          src={userData.profilePicture} 
+          alt={`${userData.name}'s profile`} 
+          onError={handleProfilePictureError}
+          onLoad={handleProfilePictureLoad}
+        />
         <UserInfoContainer>          <UserNameText>{userData.name}</UserNameText>
           <UserBioText>{userData.bio}</UserBioText>
           {isCurrentUser && !userData.profileSetup && (
@@ -368,25 +392,6 @@ function Profile() {
               )}
             </>
           )}
-            {isEditProfileModalOpen && (
-            <EditProfileModal 
-              isOpen={isEditProfileModalOpen}
-              onClose={(refresh) => {
-                setIsEditProfileModalOpen(false);
-                // Refresh the profile data after modal closes to get updated information
-                if (refresh) {
-                  console.log('Refreshing profile data after modal close');
-                  refreshProfileData();
-                }
-              }}
-              userData={{
-                name: userData.name,
-                bio: userData.actualBio || '', // Use actualBio for editing, not the display text
-                profilePicture: userData.profilePicture,
-                isNewProfile: !userData.profileSetup
-              }}
-            />
-          )}
         </UserInfoContainer>
       </ProfileHeaderContainer>
 
@@ -396,8 +401,16 @@ function Profile() {
       </ProfileStatsContainer>
 
       <ContentSectionContainer> 
-        <SectionTitleText>Posts</SectionTitleText>
-        <ContentFiltersContainer>          <FilterButton 
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <SectionTitleText>Posts</SectionTitleText>
+          {isCurrentUser && (
+            <EditProfileButton onClick={() => setIsCreatePostModalOpen(true)}>
+              Create Note
+            </EditProfileButton>
+          )}
+        </div>
+        <ContentFiltersContainer>
+          <FilterButton 
             $isActive={filter === "All"} 
             onClick={() => setFilter("All")}
           >
@@ -415,17 +428,28 @@ function Profile() {
           >
             Notes
           </FilterButton>
-        </ContentFiltersContainer>        <PostsListContainer>
-          {filteredPosts.length > 0 ? (
-            filteredPosts.map((post) => (
-              <PostItemContainer key={post.id}>
-                <PostTitleText>{post.title}</PostTitleText>
-                <PostContentText>{post.content}</PostContentText>
-              </PostItemContainer>
+        </ContentFiltersContainer>
+        <PostsListContainer>
+          {postsLoading ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
+              Loading posts...
+            </div>
+          ) : postsError ? (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#e74c3c' }}>
+              Error loading posts: {postsError}
+            </div>
+          ) : posts.length > 0 ? (
+            posts.map((post) => (
+              <PostItem 
+                key={post.id} 
+                post={post} 
+                onDelete={handlePostDeleted}
+                showActions={isCurrentUser}
+              />
             ))
           ) : (
             <div style={{ textAlign: 'center', padding: '20px', color: '#777' }}>
-              {isCurrentUser ? "You haven't created any posts yet." : "This user hasn't created any posts yet."}
+              {isCurrentUser ? "You haven't created any posts yet. Click 'Create Note' to get started!" : "This user hasn't created any posts yet."}
             </div>
           )}
         </PostsListContainer>
@@ -476,6 +500,35 @@ function Profile() {
           </div>
         )}
       </ContentSectionContainer>
+
+      {/* Modals */}
+      {isEditProfileModalOpen && (
+        <EditProfileModal 
+          isOpen={isEditProfileModalOpen}
+          onClose={(refresh) => {
+            setIsEditProfileModalOpen(false);
+            // Refresh the profile data after modal closes to get updated information
+            if (refresh) {
+              console.log('Refreshing profile data after modal close');
+              refreshProfileData();
+            }
+          }}
+          userData={{
+            name: userData.name,
+            bio: userData.actualBio || '', // Use actualBio for editing, not the display text
+            profilePicture: userData.profilePicture,
+            isNewProfile: !userData.profileSetup
+          }}
+        />
+      )}
+
+      {isCreatePostModalOpen && (
+        <CreatePostModal 
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onPostCreated={handlePostCreated}
+        />
+      )}
     </ProfilePageContainer>
   );
 }

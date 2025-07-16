@@ -11,23 +11,25 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ||
 export const spotifyApi = {
   // Fetch new album releases from backend
   getNewReleases: async (limit = 20, offset = 0) => {
-    const res = await axios.get(`/api/music/new-releases?limit=${limit}&offset=${offset}`);
+    const res = await axios.get(`${API_BASE_URL}/music/new-releases?limit=${limit}&offset=${offset}`);
     return res.data;
   },
 
   // Search for music (albums, artists, tracks) via backend
   searchMusic: async (query, type = 'album', limit = 20, offset = 0) => {
-    const res = await axios.get(`/api/music/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}&offset=${offset}`);
+    const res = await axios.get(`${API_BASE_URL}/music/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}&offset=${offset}`);
     return res.data;
   },
 
   // Get top albums (uses new releases as a proxy)
   getTopAlbums: async () => {
     try {
-      const res = await axios.get(`/api/music/top-albums`);
-      // Backend now returns the albums array directly
-      const data = res.data;
-      return Array.isArray(data) ? data : [];
+      const res = await axios.get(`${API_BASE_URL}/music/top-albums`);
+      
+      // The backend returns albums array directly
+      const albumsData = Array.isArray(res.data) ? res.data : [];
+      
+      return albumsData;
     } catch (error) {
       console.error('Error fetching top albums:', error);
       return [];
@@ -37,7 +39,8 @@ export const spotifyApi = {
   // Get top songs (from Spotify Top 50 playlist)
   getTopSongs: async () => {
     try {
-      const res = await axios.get(`/api/music/top-songs`);
+      const res = await axios.get(`${API_BASE_URL}/music/top-songs`);
+      
       // Backend now returns the tracks array directly
       const data = res.data;
       const songs = Array.isArray(data) ? data : [];
@@ -53,7 +56,12 @@ export const spotifyApi = {
 
   // Get album details by Spotify album ID
   getAlbumById: async (albumId) => {
-    const res = await axios.get(`/api/music/albums/${albumId}`);
-    return res.data;
+    try {
+      const res = await axios.get(`${API_BASE_URL}/music/albums/${albumId}`);
+      return res.data;
+    } catch (error) {
+      console.error('Error fetching album details:', error);
+      throw error;
+    }
   }
 };

@@ -22,8 +22,8 @@ const ProtectedRoute = ({ children, requireCompleteProfile = false }) => {
           const userDoc = await getDoc(doc(firestore, 'userprofiles', currentUser.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            // Consider profile complete if it has bio and profile picture
-            const isComplete = !!(userData.bio && userData.profilePicture && userData.profileSetup !== false);
+            // Consider profile complete if it has bio and profile picture (check both Firestore and Auth)
+            const isComplete = !!(userData.bio && (userData.profilePicture || currentUser.photoURL) && userData.profileSetup !== false);
             setProfileComplete(isComplete);
           } else {
             // No user document found

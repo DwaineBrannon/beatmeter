@@ -5,6 +5,8 @@ import StarRating from '../features/music/components/StarRating';
 import SongItem from '../features/music/components/SongItem';
 import { addToCollection, updateSongRatings, addToRateLater } from '../features/music/services/collectionService';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { createPost, POST_TYPES } from '../services/database/postService';
+import { spotifyApi } from '../api/spotify';
 import {
   PageContainer,
   AlbumTitle,
@@ -20,33 +22,16 @@ import {
   RateLaterButton
 } from './AlbumDetailsPage.styles';
 
-// Placeholder for album data - replace with actual data fetching
+// Fetch album details using the spotify API utility
 const fetchAlbumDetails = async (albumId) => {
-  // In a real app, you would fetch this from an API
   console.log(`Fetching details for album ID: ${albumId}`);
   
-  // Fetch from the backend API with timeout handling
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    const response = await fetch(`/api/music/albums/${albumId}`, {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    const data = await response.json();
-    return data; // The backend should return data in the expected format
+    const data = await spotifyApi.getAlbumById(albumId);
+    return data;
   } catch (error) {
     console.error("Could not fetch album details:", error);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. The server might be experiencing high load.');
-    }
-    throw error; // Rethrow so the calling function can handle it
+    throw error;
   }
 };
 
@@ -63,6 +48,9 @@ function AlbumDetailsPage() {
   const [addedToCollection, setAddedToCollection] = React.useState(false);
   const [addedToRateLater, setAddedToRateLater] = React.useState(false);
   const [apiError, setApiError] = React.useState(null);
+  const [showReviewModal, setShowReviewModal] = React.useState(false);
+  const [reviewText, setReviewText] = React.useState('');
+  const [isCreatingReview, setIsCreatingReview] = React.useState(false);
 
   React.useEffect(() => {
     const loadAlbumData = async () => {
@@ -143,28 +131,14 @@ function AlbumDetailsPage() {
       setApiError(null);
       console.log(`Adding album ${album.name} to user's collection with rating: ${albumRating}`);
       
-      // For demo purposes, we'll simulate the API call
-      // In production, uncomment the following:
-      /*
-      await addToCollection({
-        albumId: album.id,
-        name: album.name,
-        artistName: album.artistName,
-        imageUrl: album.imageUrl,
-        rating: albumRating,
-        songRatings: songRatings
-      });
-      */
+      // Show review modal if user has rated the album
+      if (albumRating && albumRating > 0) {
+        setShowReviewModal(true);
+        return; // Don't add to collection yet, wait for review
+      }
       
-      // For now, just simulate success
-      setAddedToCollection(true);
-      
-      // Show success message and optionally redirect
-      setTimeout(() => {
-        setAddedToCollection(false);
-        // Success Message to user
-        alert('Album added to your collection successfully!');
-      }, 3000);
+      // If no rating, just add to collection without review
+      await addToCollectionAndCreateReview();
     } catch (error) {
       console.error('Error adding album to collection:', error);
       
@@ -179,6 +153,85 @@ function AlbumDetailsPage() {
       setTimeout(() => {
         setApiError(null);
       }, 5000);
+    }
+  };
+
+  const addToCollectionAndCreateReview = async (reviewContent = '') => {
+    try {
+      // For demo purposes, we'll simulate the API call
+      // In production, uncomment the following:
+      /*
+      await addToCollection({
+        albumId: album.id,
+        name: album.name,
+        artistName: album.artistName,
+        imageUrl: album.imageUrl,
+        rating: albumRating,
+        songRatings: songRatings
+      });
+      */
+      
+      // Create a review post if there's a rating and review content
+      if (albumRating && albumRating > 0 && reviewContent.trim() && currentUser) {
+        try {
+          await createPost({
+            userId: currentUser.uid,
+            userDisplayName: currentUser.displayName || 'Anonymous',
+            type: POST_TYPES.REVIEW,
+            title: `${album.name} - ${album.artistName}`,
+            content: reviewContent.trim(),
+            albumId: album.id,
+            albumData: {
+              title: album.name,
+              artist: album.artistName,
+              cover: album.imageUrl
+            },
+            rating: albumRating
+          });
+          console.log('Review post created successfully');
+        } catch (reviewError) {
+          console.error('Error creating review post:', reviewError);
+          // Don't fail the collection addition if review creation fails
+        }
+      }
+      
+      // For now, just simulate success
+      setAddedToCollection(true);
+      
+      // Show success message and optionally redirect
+      setTimeout(() => {
+        setAddedToCollection(false);
+        // Success Message to user
+        alert('Album added to your collection successfully!');
+      }, 3000);
+    } catch (error) {
+      throw error; // Re-throw to be handled by the calling function
+    }
+  };
+
+  const handleReviewSubmit = async () => {
+    setIsCreatingReview(true);
+    try {
+      await addToCollectionAndCreateReview(reviewText);
+      setShowReviewModal(false);
+      setReviewText('');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setApiError('Failed to add album and create review. Please try again.');
+    } finally {
+      setIsCreatingReview(false);
+    }
+  };
+
+  const handleReviewCancel = async () => {
+    setShowReviewModal(false);
+    setReviewText('');
+    // Still add to collection even without review
+    try {
+      await addToCollectionAndCreateReview('');
+    } catch (error) {
+      console.error('Error adding to collection:', error);
+      setApiError('Failed to add album to collection. Please try again.');
     }
   };
 
@@ -332,6 +385,89 @@ function AlbumDetailsPage() {
           )}
         </TracksList>
       </AlbumContent>
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '10px',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <h3 style={{ marginBottom: '1rem', color: '#333' }}>
+              Write a Review for "{album.name}"
+            </h3>
+            <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
+              You rated this album {albumRating} stars. Share your thoughts about it!
+            </p>
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="What did you think about this album? Share your thoughts..."
+              style={{
+                width: '100%',
+                minHeight: '120px',
+                padding: '0.75rem',
+                border: '1px solid #ddd',
+                borderRadius: '5px',
+                fontSize: '1rem',
+                resize: 'vertical',
+                marginBottom: '1rem'
+              }}
+              maxLength={2000}
+            />
+            <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1rem' }}>
+              {reviewText.length}/2000 characters
+            </div>
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleReviewCancel}
+                disabled={isCreatingReview}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '5px',
+                  backgroundColor: '#f8f9fa',
+                  color: '#333',
+                  cursor: 'pointer'
+                }}
+              >
+                Skip Review
+              </button>
+              <button
+                onClick={handleReviewSubmit}
+                disabled={isCreatingReview || !reviewText.trim()}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  border: 'none',
+                  borderRadius: '5px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  cursor: 'pointer',
+                  opacity: isCreatingReview || !reviewText.trim() ? 0.6 : 1
+                }}
+              >
+                {isCreatingReview ? 'Creating Review...' : 'Create Review & Add to Collection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

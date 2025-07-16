@@ -7,11 +7,21 @@ export const theme = {
     },
     surface: {
       primary: '#282828',
-      secondary: 'rgba(50, 47, 53, 0.8)'
-    },    text: {
+      secondary: 'rgba(50, 47, 53, 0.8)',
+      tertiary: '#e9ecef'
+    },
+    text: {
       primary: '#fff',
       secondary: 'rgba(255,255,255,0.7)',
-      disabled: '#e4e5e9'
+      disabled: '#6c757d'
+    },
+    primary: {
+      main: '#007bff',
+      dark: '#0056b3'
+    },
+    border: {
+      primary: '#ddd',
+      secondary: '#ccc'
     },
     accent: '#007bff',
     secondary: 'rgba(71, 103, 125, 0.31)',

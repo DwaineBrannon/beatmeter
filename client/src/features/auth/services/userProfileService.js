@@ -9,7 +9,7 @@ import { firestore } from '../../../config/firebase';
  * @param {boolean} isNewUser - Whether this is for a new user (affects profileSetupComplete default)
  */
 export function buildUserProfileForFirestore(overrides = {}, isNewUser = false) {
-  return {
+  const baseProfile = {
     bio: overrides.bio || '',
     musicCollection: overrides.musicCollection || [],
     rateLater: overrides.rateLater || [],
@@ -26,6 +26,13 @@ export function buildUserProfileForFirestore(overrides = {}, isNewUser = false) 
       : serverTimestamp(),
     ...overrides // allow explicit override of any field
   };
+
+  // Only include profilePicture if it's explicitly provided and not empty
+  if (overrides.profilePicture && overrides.profilePicture !== '') {
+    baseProfile.profilePicture = overrides.profilePicture;
+  }
+
+  return baseProfile;
 }
 
 /**
@@ -160,6 +167,9 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
       const existingData = existingDoc.data();
       const { createdAt: _createdAt, joinDate: _joinDate, ...restOverrides } = overrides;
       
+      console.log('Existing user update - restOverrides:', restOverrides);
+      console.log('Existing user update - profilePicture in restOverrides:', restOverrides.profilePicture);
+      
       // If this is an existing user without profileSetupComplete field, 
       // check if they have essential profile data to determine status
       if (existingData.profileSetupComplete === undefined && !restOverrides.profileSetupComplete) {
@@ -172,7 +182,11 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
       profileData = buildUserProfileForFirestore(restOverrides, false); // isNewUser = false
     }
 
+    console.log('Pre-sanitization profileData:', profileData);
+    console.log('Pre-sanitization profilePicture:', profileData.profilePicture);
     const sanitizedProfile = sanitizeForFirestore(profileData);
+    console.log('Post-sanitization profileData:', sanitizedProfile);
+    console.log('Post-sanitization profilePicture:', sanitizedProfile.profilePicture);
     
     // Validate sanitized data before writing
     if (!sanitizedProfile || typeof sanitizedProfile !== 'object') {

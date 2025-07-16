@@ -99,28 +99,44 @@ export function AuthProvider({ children }) {
   async function updateUserProfile(userData) {
     try {
       if (!currentUser || !currentUser.uid) throw new Error('No user is logged in');
+      
+      console.log('updateUserProfile called with:', userData);
+      
       // Update Auth profile if displayName or photoURL provided
       if (userData.displayName || userData.profilePicture instanceof File) {
         let photoURL = currentUser.photoURL;
         if (userData.profilePicture && userData.profilePicture instanceof File) {
+          console.log('Uploading profile picture file to Firebase Storage...');
           const storageRef = ref(storage, `profilePictures/${currentUser.uid}`);
-          await uploadBytes(storageRef, userData.profilePicture);
+          const uploadResult = await uploadBytes(storageRef, userData.profilePicture);
+          console.log('Upload successful:', uploadResult);
+          
           photoURL = await getDownloadURL(storageRef);
+          console.log('Got download URL:', photoURL);
+          
           await updateProfile(auth.currentUser, { photoURL });
+          console.log('Updated Auth profile with new photoURL');
+          
+          // Store the profile picture URL in Firestore too
+          userData.profilePicture = photoURL;
+          console.log('Set userData.profilePicture to:', photoURL);
         }
         if (userData.displayName) {
           await updateProfile(auth.currentUser, { displayName: userData.displayName });
-        }
-        // Remove File object before Firestore update
-        if (userData.profilePicture instanceof File) {
-          delete userData.profilePicture;
+          console.log('Updated Auth profile with displayName:', userData.displayName);
         }
       }
       
+      console.log('Calling createOrUpdateUserProfile with userData:', userData);
+      console.log('userData.profilePicture specifically:', userData.profilePicture);
+      
       // Only update custom fields in Firestore
       await createOrUpdateUserProfile(currentUser.uid, userData, true, currentUser);
+      console.log('createOrUpdateUserProfile completed successfully');
+      
       // Refresh merged profile
       const mergedProfile = await getMergedUserProfile(auth.currentUser);
+      console.log('Got merged profile:', mergedProfile);
       setCurrentUser(mergedProfile);
       return true;
     } catch (error) {

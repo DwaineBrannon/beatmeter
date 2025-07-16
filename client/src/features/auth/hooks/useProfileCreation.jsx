@@ -25,6 +25,14 @@ export function useProfileCreation() {
         const updates = {};
         
         // Add missing fields if they don't exist
+        // BUT: Only add fields for truly incomplete profiles, not existing ones
+        
+        // Skip if profile seems complete (has either bio content or is marked as setup)
+        if (userData.bio || userData.profileSetup === true) {
+          console.log('[useProfileCreation] Profile appears complete, skipping field additions');
+          return;
+        }
+        
         if (!('profilePicture' in userData)) {
           updates.profilePicture = currentUser.photoURL || 'https://via.placeholder.com/150';
         }

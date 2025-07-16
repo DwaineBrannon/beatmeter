@@ -24,7 +24,9 @@ export const ACTIVITY_TYPES = {
   NEW_RATING: 'new_rating',
   NEW_LIST: 'new_list',
   FOLLOWED_USER: 'followed_user',
-  UPDATED_LIST: 'updated_list'
+  UPDATED_LIST: 'updated_list',
+  NEW_REVIEW: 'new_review',
+  NEW_NOTE: 'new_note'
 };
 
 /**

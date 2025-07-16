@@ -159,7 +159,7 @@ function EditProfileModal({ isOpen, onClose, userData }) {
     if (isOpen && userData) {
       setDisplayName(userData.name || '');
       setBio(userData.bio || '');
-      setImagePreview(userData.profilePicture || 'https://via.placeholder.com/150');
+      setImagePreview(userData.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=');
       setIsNewProfile(userData.isNewProfile || false);
     }
   }, [isOpen, userData]);
