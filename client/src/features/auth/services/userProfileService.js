@@ -11,6 +11,7 @@ import { firestore } from '../../../config/firebase';
 export function buildUserProfileForFirestore(overrides = {}, isNewUser = false) {
   const baseProfile = {
     bio: overrides.bio || '',
+    userRole: overrides.userRole || 'user', // Default to 'user', admin can set to 'admin'
     musicCollection: overrides.musicCollection || [],
     rateLater: overrides.rateLater || [],
     followers: overrides.followers || [],

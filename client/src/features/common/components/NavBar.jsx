@@ -81,6 +81,9 @@ function NavBar() {
     <NavBarUserDropdown ref={dropdownRef}>
       <NavBarUserDropdownLink to="/settings" onClick={() => setDropdownOpen(false)}>Settings</NavBarUserDropdownLink>
       <NavBarUserDropdownLink to="/edit-profile" onClick={() => setDropdownOpen(false)}>Edit Profile</NavBarUserDropdownLink>
+      {currentUser?.userRole === 'admin' && (
+        <NavBarUserDropdownLink to="/admin" onClick={() => setDropdownOpen(false)}>Admin Dashboard</NavBarUserDropdownLink>
+      )}
       <NavBarUserDropdownButton isLogout onClick={handleSignOut}>Log Out</NavBarUserDropdownButton>
     </NavBarUserDropdown>
   );
@@ -140,6 +143,9 @@ function NavBar() {
           <NavBarMobileLink to="/lists" onClick={() => setMobileOpen(false)}>Lists</NavBarMobileLink>
           {isSignedIn && <NavBarMobileLink to="/collection" onClick={() => setMobileOpen(false)}>My Collection</NavBarMobileLink>}
           <NavBarMobileLink to="/profile" onClick={() => setMobileOpen(false)}>Profile</NavBarMobileLink>
+          {currentUser?.userRole === 'admin' && (
+            <NavBarMobileLink to="/admin" onClick={() => setMobileOpen(false)}>Admin Dashboard</NavBarMobileLink>
+          )}
           {!isSignedIn && <>
             <NavBarMobileLink to="/login" onClick={() => setMobileOpen(false)}>Sign In</NavBarMobileLink>
             <NavBarMobileLinkCTA to="/create-account" onClick={() => setMobileOpen(false)}>Create Account</NavBarMobileLinkCTA>

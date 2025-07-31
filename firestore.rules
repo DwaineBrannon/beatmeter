@@ -1,10 +1,23 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profiles - users can only read/write their own profile
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             exists(/databases/$(database)/documents/userprofiles/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/userprofiles/$(request.auth.uid)).data.userRole == 'admin';
+    }
+    
+    // User profiles - users can only read/write their own profile, admins can read all
     match /userprofiles/{userId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+    }
+    
+    // Featured playlists - read by all authenticated users, write by admins only
+    match /featuredPlaylists/{playlistId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
     
     // Albums - read by all authenticated users, write by authenticated users

@@ -13,6 +13,8 @@ import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
 import ProtectedRoute from '../auth/components/ProtectedRoute';
 import ProfileSetup from '../auth/components/ProfileSetup';
+import AdminDashboard from '../../pages/AdminDashboard';
+import AdminRoute from '../auth/components/AdminRoute';
 
 // Route configuration with metadata
 export const routes = [
@@ -80,7 +82,7 @@ export const routes = [
     description: 'Explore user-generated playlists and recommendations'
   },
   {
-    path: '/Music',
+    path: '/music',
     element: Music,
     title: 'Music | BeatMeter',
     isPublic: true,
@@ -105,6 +107,14 @@ export const routes = [
     title: 'Your Collection | BeatMeter',
     isPublic: false, // This should be false in a real app as it requires authentication
     description: 'View and manage your music collection'
+  },
+  {
+    path: '/admin',
+    element: AdminDashboard,
+    title: 'Admin Dashboard | BeatMeter',
+    isPublic: false,
+    isAdmin: true, // Special flag for admin routes
+    description: 'Admin panel for managing featured content'
   }
 ];
 
@@ -112,7 +122,7 @@ export const routes = [
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: ElementComponent, title, isPublic }) => {
+      {routes.map(({ path, element: ElementComponent, title, isPublic, isAdmin }) => {
         const Component = ElementComponent;
         return (
           <Route 
@@ -122,7 +132,11 @@ export const generateRoutes = () => {
               <>
                 {/* Update page title when route changes */}
                 <title>{title}</title>
-                {isPublic ? (
+                {isAdmin ? (
+                  <AdminRoute>
+                    <Component />
+                  </AdminRoute>
+                ) : isPublic ? (
                   <Component />
                 ) : (
                   <ProtectedRoute>

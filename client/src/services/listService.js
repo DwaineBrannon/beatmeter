@@ -17,25 +17,7 @@ import {
 import { 
   getAlbumById 
 } from './database/albumService.js';
-import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';ist as createListInDB,
-  updateList as updateListInDB,
-  deleteList as deleteListInDB,
-  getListById,
-  getUserLists,
-  getPublicLists,
-  addAlbumToList,
-  removeAlbumFromList,
-  reorderListAlbums
-} from '../database/listService';
-import { 
-  createListActivity,
-  deleteActivitiesByTarget,
-  ACTIVITY_TYPES
-} from '../database/activityService';
-import { 
-  getAlbumById 
-} from '../database/albumService';
-import { executeFirestoreOperation } from '../../utils/firebaseHelpers';
+import { executeFirestoreOperation } from '../utils/firebaseHelpers.js';
 
 /**
  * Create a new list and associated activity

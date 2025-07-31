@@ -321,6 +321,108 @@ export const api = onRequest({ cors: true, secrets: ["SPOTIFY_CLIENT_ID", "SPOTI
       return;
     }
     
+    // Handle /admin/featured-playlists routes (admin only)
+    if (pathParts[0] === 'admin' && pathParts[1] === 'featured-playlists') {
+      // Verify admin authentication
+      const authHeader = req.headers.authorization || '';
+      const match = authHeader.match(/^Bearer (.*)$/);
+      if (!match) {
+        res.status(401).json({ error: 'Missing or invalid Authorization header' });
+        return;
+      }
+      
+      const idToken = match[1];
+      let decoded;
+      try {
+        decoded = await admin.auth().verifyIdToken(idToken);
+      } catch (err) {
+        res.status(401).json({ error: 'Invalid or expired token' });
+        return;
+      }
+      
+      // Check if user is admin
+      const uid = decoded.uid;
+      const userDoc = await admin.firestore().collection('userprofiles').doc(uid).get();
+      if (!userDoc.exists || userDoc.data()?.userRole !== 'admin') {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+      
+      // Handle GET - Get all featured playlists
+      if (method === 'GET' && pathParts.length === 2) {
+        const playlistsSnapshot = await admin.firestore().collection('featuredPlaylists').get();
+        const playlists = playlistsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        res.json(playlists);
+        return;
+      }
+      
+      // Handle POST - Add featured playlist
+      if (method === 'POST' && pathParts.length === 2) {
+        const playlistData = req.body;
+        if (!playlistData.id) {
+          res.status(400).json({ error: 'Playlist ID is required' });
+          return;
+        }
+        
+        const docRef = admin.firestore().collection('featuredPlaylists').doc(playlistData.id);
+        await docRef.set({
+          ...playlistData,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        res.json({ success: true, id: playlistData.id });
+        return;
+      }
+      
+      // Handle PUT - Update featured playlist
+      if (method === 'PUT' && pathParts.length === 3) {
+        const playlistId = pathParts[2];
+        const updates = req.body;
+        
+        const docRef = admin.firestore().collection('featuredPlaylists').doc(playlistId);
+        await docRef.update({
+          ...updates,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        res.json({ success: true });
+        return;
+      }
+      
+      // Handle DELETE - Remove featured playlist
+      if (method === 'DELETE' && pathParts.length === 3) {
+        const playlistId = pathParts[2];
+        
+        const docRef = admin.firestore().collection('featuredPlaylists').doc(playlistId);
+        await docRef.delete();
+        
+        res.json({ success: true });
+        return;
+      }
+    }
+    
+    // Handle /featured-playlists routes (public, read-only)
+    if (pathParts[0] === 'featured-playlists') {
+      if (method === 'GET' && pathParts.length === 1) {
+        const playlistsSnapshot = await admin.firestore()
+          .collection('featuredPlaylists')
+          .where('isActive', '==', true)
+          .get();
+        
+        const playlists = playlistsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        res.json(playlists);
+        return;
+      }
+    }
+    
     // If no route matches, return 404
     res.status(404).json({ error: 'Route not found' });
     

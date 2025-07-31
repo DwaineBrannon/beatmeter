@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import Carousel from "../features/common/components/Carousel";
 import AlbumCard from "../features/music/components/AlbumCard";
 import SongCard from "../features/music/components/SongCard";
+import PlaylistCard from "../features/music/components/PlaylistCard";
 import { spotifyApi } from "../api/spotify";
+import { useHomeFeaturedPlaylists } from "../hooks/useHomeFeaturedPlaylists";
 import {
   HomeContainer,
   Hero,
@@ -23,6 +25,9 @@ function Home() {
   const [songs, setSongs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Get featured playlists
+  const { playlists: featuredPlaylists, loading: playlistsLoading, error: playlistsError } = useHomeFeaturedPlaylists();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -83,7 +88,36 @@ function Home() {
             Explore Top Music
           </HeroButton>
         </HeroContent>
-      </Hero>      <SectionTitle>Top Albums</SectionTitle>      <CarouselContainer>
+      </Hero>
+
+      {/* Featured Playlists Section */}
+      {featuredPlaylists.length > 0 && !playlistsLoading && (
+        <>
+          <SectionTitle>Featured Playlists</SectionTitle>
+          <CarouselContainer>
+            <Carousel
+              items={featuredPlaylists}
+              renderItem={(playlist, { dragged }) => (
+                <PlaylistCard
+                  key={playlist.id}
+                  playlist={playlist}
+                  onClick={e => {
+                    if (dragged) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    // PlaylistCard will handle opening Spotify
+                  }}
+                />
+              )}
+            />
+          </CarouselContainer>
+        </>
+      )}
+
+      <SectionTitle>Top Albums</SectionTitle>
+      <CarouselContainer>
         <Carousel
           items={albums}
           renderItem={(album, { dragged }) => (
@@ -103,7 +137,8 @@ function Home() {
         />
       </CarouselContainer>
 
-      <SongsSection>Top Songs</SongsSection>      <CarouselContainer>
+      <SongsSection>Top Songs</SongsSection>
+      <CarouselContainer>
         <Carousel
           items={songs}
           renderItem={(song, { dragged }) => (
