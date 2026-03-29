@@ -9,30 +9,37 @@ import { firestore } from '../../../config/firebase';
  * @param {boolean} isNewUser - Whether this is for a new user (affects profileSetupComplete default)
  */
 export function buildUserProfileForFirestore(overrides = {}, isNewUser = false) {
-  const baseProfile = {
-    bio: overrides.bio || '',
-    userRole: overrides.userRole || 'user', // Default to 'user', admin can set to 'admin'
-    musicCollection: overrides.musicCollection || [],
-    rateLater: overrides.rateLater || [],
-    followers: overrides.followers || [],
-    following: overrides.following || [],
-    // For new users: false (needs setup), for existing users: don't set it (preserve existing state)
-    ...(isNewUser ? { profileSetupComplete: overrides.profileSetupComplete || false } : 
-        overrides.profileSetupComplete !== undefined ? { profileSetupComplete: overrides.profileSetupComplete } : {}),
-    createdAt: (overrides.createdAt instanceof Object && overrides.createdAt.constructor.name === 'FieldValue')
-      ? overrides.createdAt
-      : serverTimestamp(),
-    joinDate: (overrides.joinDate instanceof Object && overrides.joinDate.constructor.name === 'FieldValue')
-      ? overrides.joinDate
-      : serverTimestamp(),
-    ...overrides // allow explicit override of any field
-  };
+  if (isNewUser) {
+    const baseProfile = {
+      bio: overrides.bio ?? '',
+      userRole: overrides.userRole ?? 'user',
+      musicCollection: overrides.musicCollection ?? [],
+      rateLater: overrides.rateLater ?? [],
+      followers: overrides.followers ?? [],
+      following: overrides.following ?? [],
+      profileSetupComplete: overrides.profileSetupComplete ?? false,
+      createdAt: (overrides.createdAt instanceof Object && overrides.createdAt.constructor.name === 'FieldValue')
+        ? overrides.createdAt
+        : serverTimestamp(),
+      joinDate: (overrides.joinDate instanceof Object && overrides.joinDate.constructor.name === 'FieldValue')
+        ? overrides.joinDate
+        : serverTimestamp(),
+      ...overrides
+    };
+    if (overrides.profilePicture && overrides.profilePicture !== '') {
+      baseProfile.profilePicture = overrides.profilePicture;
+    }
+    return baseProfile;
+  }
 
-  // Only include profilePicture if it's explicitly provided and not empty
+  // Existing user: ONLY include explicitly provided fields
+  const baseProfile = {};
+  for (const [key, value] of Object.entries(overrides)) {
+    if (value !== undefined) baseProfile[key] = value;
+  }
   if (overrides.profilePicture && overrides.profilePicture !== '') {
     baseProfile.profilePicture = overrides.profilePicture;
   }
-
   return baseProfile;
 }
 
@@ -188,10 +195,16 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
     const sanitizedProfile = sanitizeForFirestore(profileData);
     console.log('Post-sanitization profileData:', sanitizedProfile);
     console.log('Post-sanitization profilePicture:', sanitizedProfile.profilePicture);
-    
+
     // Validate sanitized data before writing
     if (!sanitizedProfile || typeof sanitizedProfile !== 'object') {
       throw new Error('Invalid profile data after sanitization');
+    }
+
+    // Guard: skip Firestore write if no fields to update
+    if (!sanitizedProfile || Object.keys(sanitizedProfile).length === 0) {
+      console.log('[setDoc] Skipping write: no fields to update');
+      return profileData;
     }
 
     if (typeof window !== 'undefined') {
@@ -202,63 +215,13 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
         console.log('Firestore projectId:', firestore._databaseId.projectId);
         console.log('Firestore database:', firestore._databaseId.database);
       }
-      
-      // Debug: Check Firestore settings and connectivity
-      console.log('Firestore settings:', firestore._settings);
-      console.log('Firestore app:', firestore.app.name);
-      console.log('Firestore _delegate:', firestore._delegate);
-      
-      // Check if running in emulator
-      const isEmulator = firestore._settings?.host?.includes('localhost') || 
-                        firestore._settings?.host?.includes('127.0.0.1') ||
-                        firestore._emulatorOptions;
-      console.log('Running in emulator:', isEmulator);
-      if (isEmulator) {
-        console.log('Emulator settings:', firestore._emulatorOptions || firestore._settings);
-      }
-      
-      // Debug: Check document path validity
-      console.log('UserDocRef path:', userDocRef.path);
-      console.log('UserDocRef id:', userDocRef.id);
-      console.log('UserDocRef parent path:', userDocRef.parent.path);
-      
-      // Debug: Validate data before writing
-      console.log('Raw profile data:', JSON.stringify(profileData, null, 2));
-      console.log('Sanitized profile data:', JSON.stringify(sanitizedProfile, null, 2));
-      console.log('Data size (bytes):', JSON.stringify(sanitizedProfile).length);
-      
-      // Debug: Check for problematic field names
-      const problematicFields = Object.keys(sanitizedProfile).filter(key => 
-        key.startsWith('_') || 
-        key.includes('.') || 
-        key.includes('/') ||
-        /^\d/.test(key) // starts with number
-      );
-      if (problematicFields.length > 0) {
-        console.warn('Potentially problematic field names:', problematicFields);
-      }
-      
-      // Debug: Check field types
-      Object.entries(sanitizedProfile).forEach(([key, value]) => {
-        const type = Object.prototype.toString.call(value);
-        console.log(`[FieldType] ${key}:`, value, 'Type:', type);
-        
-        // Check for unsupported types
-        if (type === '[object Function]' || 
-            type === '[object Symbol]' || 
-            (typeof window !== 'undefined' && (value instanceof File || value instanceof Blob))) {
-          console.error(`[ERROR] Unsupported field type for ${key}:`, type);
-        }
-      });
-
-      // Skip the minimal write test to avoid auth dependency issues
-      console.log('Skipping minimal document write test');
+      // ...existing code...
     }
 
     console.log('[setDoc] Attempting to write document with merge:', merge);
     console.log('[setDoc] Document path:', userDocRef.path);
     console.log('[setDoc] Document data keys:', Object.keys(sanitizedProfile));
-    
+
     await setDoc(userDocRef, sanitizedProfile, { merge })
       .then(() => {
         console.log('[setDoc] Success: Document written to', userDocRef.path);
@@ -275,7 +238,7 @@ export async function createOrUpdateUserProfile(uid, overrides = {}, merge = tru
         });
         throw err; // Re-throw to be caught by outer catch
       });
-      
+
     // Read back the document immediately after writing
     console.log('[getDoc] Reading back document...');
     const writtenDoc = await getDoc(userDocRef);

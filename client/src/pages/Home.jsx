@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
-import Carousel from "../features/common/components/Carousel";
-import AlbumCard from "../features/music/components/AlbumCard";
-import SongCard from "../features/music/components/SongCard";
-import PlaylistCard from "../features/music/components/PlaylistCard";
-import { spotifyApi } from "../api/spotify";
-import { useHomeFeaturedPlaylists } from "../hooks/useHomeFeaturedPlaylists";
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import Carousel from '../features/common/components/Carousel';
+import AlbumCard from '../features/music/components/AlbumCard';
+import SongCard from '../features/music/components/SongCard';
+import PlaylistCard from '../features/music/components/PlaylistCard';
+import { musicApi } from '@features/music/api/musicApi';
+import { useHomeFeaturedPlaylists } from '../hooks/useHomeFeaturedPlaylists';
+import { doc, getDoc } from 'firebase/firestore';
+import { firestore } from '../config/firebase';
 import {
   HomeContainer,
   Hero,
@@ -17,56 +20,56 @@ import {
   CarouselContainer,
   SongsSection,
   Loading,
-  Error
+  Error,
 } from './Home.styles';
 
 function Home() {
-  const [albums, setAlbums] = useState([]);
-  const [songs, setSongs] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
   // Get featured playlists
-  const { playlists: featuredPlaylists, loading: playlistsLoading, error: playlistsError } = useHomeFeaturedPlaylists();
+  const {
+    playlists: featuredPlaylists,
+    loading: playlistsLoading,
+    error: playlistsError,
+  } = useHomeFeaturedPlaylists();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setIsLoading(true);
-        const [albumsResponse, songsResponse] = await Promise.all([
-          spotifyApi.getTopAlbums(),
-          spotifyApi.getTopSongs()
-        ]);
-        
-        // Ensure we always set arrays
-        const albumsData = Array.isArray(albumsResponse) ? albumsResponse : [];
-        const songsData = Array.isArray(songsResponse) ? songsResponse : [];
-        
-        console.log('Albums data:', albumsData);
-        console.log('Songs data:', songsData);
-        
-        setAlbums(albumsData);
-        setSongs(songsData);
-        setError(null);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load music data. Please try again.');
-        // Set empty arrays on error to prevent map errors
-        setAlbums([]);
-        setSongs([]);
-      } finally {
-        setIsLoading(false);
+  // Fetch all home data in parallel using useQuery
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['homeData'],
+    queryFn: async () => {
+      // Fetch Weekly Favorites from Firestore
+      const favoritesRef = doc(
+        firestore,
+        'featuredPlaylists',
+        'weekly_favorites'
+      );
+
+      const [favoritesSnap, albumsResponse, songsResponse] = await Promise.all([
+        getDoc(favoritesRef),
+        musicApi.getTopAlbums(),
+        musicApi.getTopSongs(),
+      ]);
+
+      let weeklyFavorites = [];
+      if (favoritesSnap.exists()) {
+        weeklyFavorites = favoritesSnap.data().albums || [];
       }
-    };
 
-    fetchData();
-  }, []);
+      return {
+        albums: Array.isArray(albumsResponse) ? albumsResponse : [],
+        songs: Array.isArray(songsResponse) ? songsResponse : [],
+        weeklyFavorites,
+      };
+    },
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  const { albums = [], songs = [], weeklyFavorites = [] } = data || {};
+
   if (isLoading) {
     return <Loading>Loading...</Loading>;
   }
 
   if (error) {
-    return <Error>{error}</Error>;
+    return <Error>Failed to load music data. Please try again.</Error>;
   }
 
   return (
@@ -74,21 +77,52 @@ function Home() {
       <Hero>
         <HeroOverlay />
         <HeroContent>
-          <HeroTitle>
-            Discover. Rate. Share.
-          </HeroTitle>
+          <HeroTitle>Discover. Rate. Share.</HeroTitle>
           <HeroSubtitle>
-            Your personal music journey starts here.<br />
-            Track your favorite tracks, rate your top albums,<br />
+            Your personal music journey starts here.
+            <br />
+            Track your favorite tracks, rate your top albums,
+            <br />
             and showcase your unique taste in music.
           </HeroSubtitle>
-          <HeroButton 
-            onClick={() => window.scrollTo({ top: document.querySelector('.carousel-container')?.offsetTop || 0, behavior: 'smooth' })}
+          <HeroButton
+            onClick={() =>
+              window.scrollTo({
+                top:
+                  document.querySelector('.carousel-container')?.offsetTop || 0,
+                behavior: 'smooth',
+              })
+            }
           >
             Explore Top Music
           </HeroButton>
         </HeroContent>
       </Hero>
+
+      {/* Weekly Favorites Section */}
+      {weeklyFavorites.length > 0 && (
+        <>
+          <SectionTitle>Our Favorites This Week</SectionTitle>
+          <CarouselContainer>
+            <Carousel
+              items={weeklyFavorites}
+              renderItem={(album, { dragged }) => (
+                <AlbumCard
+                  key={album.id}
+                  album={album}
+                  onClick={e => {
+                    if (dragged) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                  }}
+                />
+              )}
+            />
+          </CarouselContainer>
+        </>
+      )}
 
       {/* Featured Playlists Section */}
       {featuredPlaylists.length > 0 && !playlistsLoading && (
@@ -154,7 +188,9 @@ function Home() {
                 if (song.albumId) {
                   window.location.href = `/album/${song.albumId}`;
                 } else {
-                  console.log(`Song clicked: ${song.title}, but no album ID available`);
+                  console.log(
+                    `Song clicked: ${song.title}, but no album ID available`
+                  );
                 }
               }}
             />

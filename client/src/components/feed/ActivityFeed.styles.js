@@ -29,7 +29,7 @@ export const TabButton = styled.button`
   padding: 8px 16px;
   border: 1px solid #ddd;
   background: white;
-  color: #666;
+  color: #000000ff;
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
@@ -53,7 +53,6 @@ export const Activities = styled.div`
 
 export const ActivityItem = styled.article`
   background: white;
-  border: 1px solid #e0e0e0;
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

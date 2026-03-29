@@ -22,17 +22,13 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.api = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const admin = __importStar(require("firebase-admin"));
-const axios_1 = __importDefault(require("axios"));
-const spotifyApi_1 = require("./utils/spotifyApi");
+const musicbrainzApi_1 = require("./utils/musicbrainzApi");
 const common_1 = require("./utils/common");
-exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"] }, async (req, res) => {
+exports.api = (0, https_1.onRequest)({ cors: true }, async (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -52,23 +48,18 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             const albumId = pathParts[2];
             // Handle specific album by ID
             if (pathParts.length === 3) {
-                const token = await (0, spotifyApi_1.getSpotifyToken)();
-                const response = await axios_1.default.get(`https://api.spotify.com/v1/albums/${albumId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const album = await (0, musicbrainzApi_1.getReleaseGroupById)(albumId);
                 // Transform the data to flatten tracks structure and include track durations in mm:ss format
                 const transformedAlbum = {
-                    ...response.data,
+                    ...album,
                     // Extract the best quality image URL (usually the first/largest one)
-                    imageUrl: response.data.images?.[0]?.url || null,
+                    imageUrl: album.images?.[0]?.url || null,
                     // Also keep artist name easily accessible
-                    artistName: response.data.artists?.[0]?.name || 'Unknown Artist',
-                    tracks: response.data.tracks.items.map((track) => ({
+                    artistName: album.artists?.[0]?.name || 'Unknown Artist',
+                    tracks: album.tracks.items.map((track) => ({
                         ...track,
-                        duration_formatted: (0, common_1.millisToMinutesAndSeconds)(track.duration_ms)
-                    }))
+                        duration_formatted: (0, common_1.millisToMinutesAndSeconds)(track.duration_ms),
+                    })),
                 };
                 res.json(transformedAlbum);
                 return;
@@ -88,59 +79,39 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
                 res.status(400).json({ error: 'Query parameter is required' });
                 return;
             }
-            const token = await (0, spotifyApi_1.getSpotifyToken)();
-            const response = await axios_1.default.get(`https://api.spotify.com/v1/search?q=${encodeURIComponent(query)}&type=${type}&limit=${limit}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            res.json(response.data);
+            if (type === 'track') {
+                const tracks = await (0, musicbrainzApi_1.searchRecordings)(query, limit);
+                res.json({ tracks: { items: tracks } });
+            }
+            else {
+                // Default to album search
+                const results = await (0, musicbrainzApi_1.searchReleaseGroups)(query, limit);
+                res.json(results);
+            }
             return;
         }
         // Handle /music/new-releases routes
         if (pathParts[0] === 'music' && pathParts[1] === 'new-releases') {
             const limit = parseInt(req.query.limit) || 20;
-            const token = await (0, spotifyApi_1.getSpotifyToken)();
-            const response = await axios_1.default.get(`https://api.spotify.com/v1/browse/new-releases?limit=${limit}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-            res.json(response.data);
+            const results = await (0, musicbrainzApi_1.getNewReleases)(limit);
+            res.json(results);
             return;
         }
         // Handle /music/top-songs routes (uses search API for popular tracks)
         if (pathParts[0] === 'music' && pathParts[1] === 'top-songs') {
             const limit = parseInt(req.query.limit) || 20;
-            const token = await (0, spotifyApi_1.getSpotifyToken)();
             try {
-                // Use search API to get popular tracks
-                const response = await axios_1.default.get(`https://api.spotify.com/v1/search?q=year:2024&type=track&limit=${limit}&market=US`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                // Return just the tracks array from search results
-                const tracks = response.data.tracks?.items || [];
+                // Use search API to get popular tracks (mocked by searching for recent tracks)
+                const currentYear = new Date().getFullYear();
+                const tracks = await (0, musicbrainzApi_1.searchRecordings)(`date:${currentYear}`, limit);
                 console.log(`Returning ${tracks.length} tracks from search`);
                 res.json(tracks);
             }
             catch (err) {
-                // Log the full error object for debugging (stringify data for clarity)
-                console.error('Spotify API error:', {
-                    message: err.message,
-                    status: err?.response?.status,
-                    headers: err?.response?.headers,
-                    data: JSON.stringify(err?.response?.data, null, 2)
-                });
+                console.error('MusicBrainz API error:', err);
                 res.status(500).json({
-                    error: 'Failed to fetch playlist from Spotify',
-                    details: {
-                        message: err.message,
-                        status: err?.response?.status,
-                        headers: err?.response?.headers,
-                        data: err?.response?.data
-                    }
+                    error: 'Failed to fetch top songs',
+                    details: err.message,
                 });
             }
             return;
@@ -148,28 +119,27 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
         // Update /music/top-albums to use new releases as a proxy for top albums
         if (pathParts[0] === 'music' && pathParts[1] === 'top-albums') {
             const limit = parseInt(req.query.limit) || 20;
-            const token = await (0, spotifyApi_1.getSpotifyToken)();
-            const response = await axios_1.default.get(`https://api.spotify.com/v1/browse/new-releases?limit=${limit}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
+            const results = await (0, musicbrainzApi_1.getNewReleases)(limit);
             // Return just the albums array with imageUrl and artistName added for consistency
-            const albums = (response.data.albums?.items || []).map((album) => ({
+            const albums = (results.albums?.items || []).map((album) => ({
                 ...album,
                 imageUrl: album.images?.[0]?.url || null,
-                artistName: album.artists?.[0]?.name || 'Unknown Artist'
+                artistName: album.artists?.[0]?.name || 'Unknown Artist',
             }));
             console.log(`Returning ${albums.length} albums`);
             res.json(albums);
             return;
         }
         // --- USER COLLECTION ROUTES ---
-        if (pathParts[0] === 'users' && pathParts[1] === 'me' && pathParts[2] === 'collection') {
+        if (pathParts[0] === 'users' &&
+            pathParts[1] === 'me' &&
+            pathParts[2] === 'collection') {
             const authHeader = req.headers.authorization || '';
             const match = authHeader.match(/^Bearer (.*)$/);
             if (!match) {
-                res.status(401).json({ error: 'Missing or invalid Authorization header' });
+                res
+                    .status(401)
+                    .json({ error: 'Missing or invalid Authorization header' });
                 return;
             }
             const idToken = match[1];
@@ -182,45 +152,82 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
                 return;
             }
             const uid = decoded.uid;
-            const userDoc = admin.firestore().collection('userprofiles').doc(uid);
+            const userDocRef = admin.firestore().collection('userprofiles').doc(uid);
             if (method === 'GET' && pathParts.length === 3) {
-                const doc = await userDoc.get();
+                const doc = await userDocRef.get();
                 const data = doc.exists ? doc.data() : null;
                 res.json(data?.musicCollection || []);
                 return;
             }
             if (method === 'POST' && pathParts.length === 3) {
-                const albumData = req.body;
-                await userDoc.update({
-                    musicCollection: admin.firestore.FieldValue.arrayUnion(albumData)
-                });
+                const incoming = req.body || {};
+                // Normalize payload to consistent schema expected by client profile UI
+                const normalized = {
+                    albumId: incoming.albumId || incoming.id || null,
+                    title: incoming.title || incoming.name || '',
+                    artist: incoming.artist || incoming.artistName || '',
+                    cover: incoming.cover || incoming.imageUrl || '',
+                    rating: typeof incoming.rating === 'number' ? incoming.rating : null,
+                    songRatings: incoming.songRatings || null,
+                    addedAt: admin.firestore.FieldValue.serverTimestamp(),
+                };
+                const docSnap = await userDocRef.get();
+                const current = (docSnap.exists && docSnap.data()?.musicCollection) || [];
+                const idx = current.findIndex((it) => it.albumId === normalized.albumId);
+                if (idx >= 0) {
+                    // Update existing entry (avoid duplicates)
+                    const updated = current.map((it, i) => i === idx
+                        ? {
+                            ...it,
+                            title: normalized.title || it.title,
+                            artist: normalized.artist || it.artist,
+                            cover: normalized.cover || it.cover,
+                            // Only update rating/songRatings if provided
+                            ...(normalized.rating !== null
+                                ? { rating: normalized.rating }
+                                : {}),
+                            ...(normalized.songRatings
+                                ? { songRatings: normalized.songRatings }
+                                : {}),
+                            // Keep original addedAt if present
+                        }
+                        : it);
+                    await userDocRef.update({ musicCollection: updated });
+                }
+                else {
+                    await userDocRef.update({
+                        musicCollection: admin.firestore.FieldValue.arrayUnion(normalized),
+                    });
+                }
                 res.json({ success: true });
                 return;
             }
-            if (method === 'PUT' && pathParts.length === 5 && pathParts[4] === 'rating') {
+            if (method === 'PUT' &&
+                pathParts.length === 5 &&
+                pathParts[4] === 'rating') {
                 const itemId = pathParts[3];
                 const { rating } = req.body;
-                const doc = await userDoc.get();
+                const doc = await userDocRef.get();
                 if (!doc.exists) {
                     res.status(404).json({ error: 'User collection not found' });
                     return;
                 }
                 const collection = doc.data()?.musicCollection || [];
                 const updated = collection.map((item) => item.albumId === itemId ? { ...item, rating } : item);
-                await userDoc.update({ musicCollection: updated });
+                await userDocRef.update({ musicCollection: updated });
                 res.json({ success: true });
                 return;
             }
             if (method === 'DELETE' && pathParts.length === 4) {
                 const itemId = pathParts[3];
-                const doc = await userDoc.get();
+                const doc = await userDocRef.get();
                 if (!doc.exists) {
                     res.status(404).json({ error: 'User collection not found' });
                     return;
                 }
                 const collection = doc.data()?.musicCollection || [];
                 const updated = collection.filter((item) => item.albumId !== itemId);
-                await userDoc.update({ musicCollection: updated });
+                await userDocRef.update({ musicCollection: updated });
                 res.json({ success: true });
                 return;
             }
@@ -228,11 +235,15 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             return;
         }
         // Handle /users/me/ratelater CRUD routes (requires Firebase Auth)
-        if (pathParts[0] === 'users' && pathParts[1] === 'me' && pathParts[2] === 'ratelater') {
+        if (pathParts[0] === 'users' &&
+            pathParts[1] === 'me' &&
+            pathParts[2] === 'ratelater') {
             const authHeader = req.headers.authorization || '';
             const match = authHeader.match(/^Bearer (.*)$/);
             if (!match) {
-                res.status(401).json({ error: 'Missing or invalid Authorization header' });
+                res
+                    .status(401)
+                    .json({ error: 'Missing or invalid Authorization header' });
                 return;
             }
             const idToken = match[1];
@@ -249,7 +260,7 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             if (method === 'POST' && pathParts.length === 3) {
                 const albumData = req.body;
                 await userDoc.update({
-                    rateLater: admin.firestore.FieldValue.arrayUnion(albumData)
+                    rateLater: admin.firestore.FieldValue.arrayUnion(albumData),
                 });
                 res.json({ success: true });
                 return;
@@ -277,11 +288,18 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             return;
         }
         // Handle /music/albums/:albumId/songs/ratings (PUT, update song ratings for album in user collection)
-        if (pathParts[0] === 'music' && pathParts[1] === 'albums' && pathParts[2] && pathParts[3] === 'songs' && pathParts[4] === 'ratings' && method === 'PUT') {
+        if (pathParts[0] === 'music' &&
+            pathParts[1] === 'albums' &&
+            pathParts[2] &&
+            pathParts[3] === 'songs' &&
+            pathParts[4] === 'ratings' &&
+            method === 'PUT') {
             const authHeader = req.headers.authorization || '';
             const match = authHeader.match(/^Bearer (.*)$/);
             if (!match) {
-                res.status(401).json({ error: 'Missing or invalid Authorization header' });
+                res
+                    .status(401)
+                    .json({ error: 'Missing or invalid Authorization header' });
                 return;
             }
             const idToken = match[1];
@@ -308,6 +326,112 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
             res.json({ success: true });
             return;
         }
+        // Handle /admin/featured-playlists routes (admin only)
+        if (pathParts[0] === 'admin' && pathParts[1] === 'featured-playlists') {
+            // Verify admin authentication
+            const authHeader = req.headers.authorization || '';
+            const match = authHeader.match(/^Bearer (.*)$/);
+            if (!match) {
+                res
+                    .status(401)
+                    .json({ error: 'Missing or invalid Authorization header' });
+                return;
+            }
+            const idToken = match[1];
+            let decoded;
+            try {
+                decoded = await admin.auth().verifyIdToken(idToken);
+            }
+            catch (err) {
+                res.status(401).json({ error: 'Invalid or expired token' });
+                return;
+            }
+            // Check if user is admin
+            const uid = decoded.uid;
+            const userDoc = await admin
+                .firestore()
+                .collection('userprofiles')
+                .doc(uid)
+                .get();
+            if (!userDoc.exists || userDoc.data()?.userRole !== 'admin') {
+                res.status(403).json({ error: 'Admin access required' });
+                return;
+            }
+            // Handle GET - Get all featured playlists
+            if (method === 'GET' && pathParts.length === 2) {
+                const playlistsSnapshot = await admin
+                    .firestore()
+                    .collection('featuredPlaylists')
+                    .get();
+                const playlists = playlistsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                res.json(playlists);
+                return;
+            }
+            // Handle POST - Add featured playlist
+            if (method === 'POST' && pathParts.length === 2) {
+                const playlistData = req.body;
+                if (!playlistData.id) {
+                    res.status(400).json({ error: 'Playlist ID is required' });
+                    return;
+                }
+                const docRef = admin
+                    .firestore()
+                    .collection('featuredPlaylists')
+                    .doc(playlistData.id);
+                await docRef.set({
+                    ...playlistData,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                res.json({ success: true, id: playlistData.id });
+                return;
+            }
+            // Handle PUT - Update featured playlist
+            if (method === 'PUT' && pathParts.length === 3) {
+                const playlistId = pathParts[2];
+                const updates = req.body;
+                const docRef = admin
+                    .firestore()
+                    .collection('featuredPlaylists')
+                    .doc(playlistId);
+                await docRef.update({
+                    ...updates,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                res.json({ success: true });
+                return;
+            }
+            // Handle DELETE - Remove featured playlist
+            if (method === 'DELETE' && pathParts.length === 3) {
+                const playlistId = pathParts[2];
+                const docRef = admin
+                    .firestore()
+                    .collection('featuredPlaylists')
+                    .doc(playlistId);
+                await docRef.delete();
+                res.json({ success: true });
+                return;
+            }
+        }
+        // Handle /featured-playlists routes (public, read-only)
+        if (pathParts[0] === 'featured-playlists') {
+            if (method === 'GET' && pathParts.length === 1) {
+                const playlistsSnapshot = await admin
+                    .firestore()
+                    .collection('featuredPlaylists')
+                    .where('isActive', '==', true)
+                    .get();
+                const playlists = playlistsSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    ...doc.data(),
+                }));
+                res.json(playlists);
+                return;
+            }
+        }
         // If no route matches, return 404
         res.status(404).json({ error: 'Route not found' });
     }
@@ -315,7 +439,7 @@ exports.api = (0, https_1.onRequest)({ cors: true, secrets: ["SPOTIFY_CLIENT_ID"
         console.error('API Error:', error);
         res.status(500).json({
             error: 'Internal server error',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            details: error instanceof Error ? error.message : 'Unknown error',
         });
     }
 });

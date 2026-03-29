@@ -1,4 +1,5 @@
 import { getIdToken } from '@/utils/authHelpers';
+import { apiUrl } from '@/utils/api';
 
 /**
  * Music collection service for handling album and collection operations
@@ -14,7 +15,7 @@ export const addToCollection = async (albumData) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch('/api/users/me/collection', {
+    const response = await authFetch('users/me/collection', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -45,7 +46,7 @@ export const getUserCollection = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch('/api/users/me/collection', {
+    const response = await authFetch('users/me/collection', {
       signal: controller.signal
     });
     
@@ -73,7 +74,7 @@ export const updateCollectionItemRating = async (itemId, rating) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch(`/api/users/me/collection/${itemId}/rating`, {
+    const response = await authFetch(`users/me/collection/${itemId}/rating`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export const removeFromCollection = async (itemId) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch(`/api/users/me/collection/${itemId}`, {
+    const response = await authFetch(`users/me/collection/${itemId}`, {
       method: 'DELETE',
       signal: controller.signal
     });
@@ -134,7 +135,7 @@ export const updateSongRatings = async (albumId, songRatings) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch(`/api/music/albums/${albumId}/songs/ratings`, {
+    const response = await authFetch(`music/albums/${albumId}/songs/ratings`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -166,16 +167,16 @@ export const addToRateLater = async (albumData) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch('/api/users/me/ratelater', {
+    const response = await authFetch('users/me/ratelater', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         albumId: albumData.albumId,
-        name: albumData.name,
-        artistName: albumData.artistName,
-        imageUrl: albumData.imageUrl,
+        name: albumData.name || albumData.title,
+        artistName: albumData.artistName || albumData.artist,
+        imageUrl: albumData.imageUrl || albumData.cover,
       }),
       signal: controller.signal
     });
@@ -202,7 +203,7 @@ export const getRateLater = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch('/api/users/me/ratelater', {
+    const response = await authFetch('users/me/ratelater', {
       signal: controller.signal
     });
     
@@ -229,7 +230,7 @@ export const removeFromRateLater = async (itemId) => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
-    const response = await authFetch(`/api/users/me/ratelater/${itemId}`, {
+    const response = await authFetch(`users/me/ratelater/${itemId}`, {
       method: 'DELETE',
       signal: controller.signal
     });
@@ -247,11 +248,12 @@ export const removeFromRateLater = async (itemId) => {
   }
 };
 
-async function authFetch(url, options = {}) {
+async function authFetch(path, options = {}) {
   const token = await getIdToken();
   const headers = {
     ...(options.headers || {}),
     Authorization: `Bearer ${token}`,
   };
-  return fetch(url, { ...options, headers });
+  const fullUrl = apiUrl(typeof path === 'string' ? (path.startsWith('/') ? path.slice(1) : path) : path);
+  return fetch(fullUrl, { ...options, headers });
 }

@@ -3,10 +3,14 @@ import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import StarRating from '../features/music/components/StarRating';
 import SongItem from '../features/music/components/SongItem';
-import { addToCollection, updateSongRatings, addToRateLater } from '../features/music/services/collectionService';
+import {
+  addToCollection,
+  updateSongRatings,
+  addToRateLater,
+} from '../features/music/services/collectionService';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { createPost, POST_TYPES } from '../services/database/postService';
-import { spotifyApi } from '../api/spotify';
+import { musicApi } from '@features/music/api/musicApi';
 import {
   PageContainer,
   AlbumTitle,
@@ -19,18 +23,18 @@ import {
   TracksHeader,
   ActionButton,
   ActionButtonsContainer,
-  RateLaterButton
+  RateLaterButton,
 } from './AlbumDetailsPage.styles';
 
 // Fetch album details using the spotify API utility
-const fetchAlbumDetails = async (albumId) => {
+const fetchAlbumDetails = async albumId => {
   console.log(`Fetching details for album ID: ${albumId}`);
-  
+
   try {
-    const data = await spotifyApi.getAlbumById(albumId);
+    const data = await musicApi.getAlbumById(albumId);
     return data;
   } catch (error) {
-    console.error("Could not fetch album details:", error);
+    console.error('Could not fetch album details:', error);
     throw error;
   }
 };
@@ -41,7 +45,8 @@ function AlbumDetailsPage() {
   const [album, setAlbum] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
-  const [retryCount, setRetryCount] = React.useState(0);  const [songRatings, setSongRatings] = React.useState({});
+  const [retryCount, setRetryCount] = React.useState(0);
+  const [songRatings, setSongRatings] = React.useState({});
   const [albumRating, setAlbumRating] = React.useState(null);
   const { currentUser } = useAuth();
   const isAuthenticated = !!currentUser;
@@ -62,27 +67,21 @@ function AlbumDetailsPage() {
           // Ensure tracks is always an array
           const safeDetails = {
             ...details,
-            tracks: Array.isArray(details.tracks) 
-              ? details.tracks 
-              : (details.tracks?.items || []),
-            // Ensure imageUrl is available - fallback to images array if needed
-            imageUrl: details.imageUrl || details.images?.[0]?.url || null,
-            // Ensure artistName is available
-            artistName: details.artistName || details.artists?.[0]?.name || 'Unknown Artist'
+            tracks: Array.isArray(details.tracks)
+              ? details.tracks
+              : details.tracks?.items || [],
           };
-          
-          console.log('Album details loaded:', safeDetails);
           setAlbum(safeDetails);
-          
-          // Initialize ratings if they come from the backend/data source
-          setAlbumRating(details.initialAlbumRating || null);
-          setSongRatings(details.initialSongRatings || {});
-        } else {
-          setError('Album not found');
         }
-      } catch (err) {
-        console.error("Error fetching album details:", err);
-        setError('Failed to load album details. API may be temporarily unavailable.');
+      } catch (error) {
+        console.error('Error loading album:', error);
+        setError(error.message);
+        if (retryCount < 3) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+            loadAlbumData();
+          }, 1000);
+        }
       } finally {
         setLoading(false);
       }
@@ -92,257 +91,161 @@ function AlbumDetailsPage() {
       loadAlbumData();
     }
   }, [albumId, retryCount]);
-  
-  // Calculate average album rating from song ratings
-  React.useEffect(() => {
-    if (album && album.tracks && album.tracks.length > 0) {
-      const ratedSongs = Object.values(songRatings).filter(rating => rating !== null && rating > 0);
-      if (ratedSongs.length > 0) {
-        const totalRating = ratedSongs.reduce((sum, rating) => sum + rating, 0);
-        const average = totalRating / ratedSongs.length;
-        // Always update album rating based on song ratings
-        // This ensures album rating reflects the current song ratings
-        setAlbumRating(Math.round(average * 2) / 2); // Round to nearest 0.5
-      } else {
-        setAlbumRating(null); // No ratings yet
-      }
-    }
-  }, [songRatings, album]);
 
-  const handleRateSong = (songId, rating) => {
-    setSongRatings(prevRatings => ({
-      ...prevRatings,
-      [songId]: rating,
+  const handleRateSong = (trackId, rating) => {
+    if (!isAuthenticated) return;
+
+    setSongRatings(prev => ({
+      ...prev,
+      [trackId]: rating,
     }));
-    
-    // Persist this rating if needed
-    try {
-      // Update song rating in the backend (this is optional for now)
-      console.log(`Rated song ${songId} with ${rating} stars`);
-      // In production, uncomment:
-      // updateSongRatings(albumId, { ...songRatings, [songId]: rating });
-    } catch (error) {
-      console.error('Error saving song rating:', error);
-    }
-  };
-  
-  const handleAddToCollection = async () => {
-    try {
-      setApiError(null);
-      console.log(`Adding album ${album.name} to user's collection with rating: ${albumRating}`);
-      
-      // Show review modal if user has rated the album
-      if (albumRating && albumRating > 0) {
-        setShowReviewModal(true);
-        return; // Don't add to collection yet, wait for review
-      }
-      
-      // If no rating, just add to collection without review
-      await addToCollectionAndCreateReview();
-    } catch (error) {
-      console.error('Error adding album to collection:', error);
-      
-      // Display appropriate error message based on the error
-      if (error.name === 'AbortError') {
-        setApiError('Request timed out. Please try again later.');
-      } else {
-        setApiError('Failed to add album to collection. Please try again.');
-      }
-      
-      // Clear error after a few seconds
-      setTimeout(() => {
-        setApiError(null);
-      }, 5000);
+
+    // Calculate average album rating
+    const updatedRatings = { ...songRatings, [trackId]: rating };
+    const ratingsArray = Object.values(updatedRatings).filter(
+      r => r !== null && r !== undefined
+    );
+    if (ratingsArray.length > 0) {
+      const average =
+        ratingsArray.reduce((sum, r) => sum + r, 0) / ratingsArray.length;
+      setAlbumRating(Math.round(average * 10) / 10);
     }
   };
 
-  const addToCollectionAndCreateReview = async (reviewContent = '') => {
+  const handleAddToCollection = async () => {
+    if (!isAuthenticated || !albumRating) {
+      setApiError('Please rate at least one song before adding to collection');
+      return;
+    }
+
+    setShowReviewModal(true);
+  };
+
+  const handleAddToRateLater = async () => {
+    if (!isAuthenticated) {
+      setApiError('Please log in to add albums to your rate later list');
+      return;
+    }
+
     try {
-      // For demo purposes, we'll simulate the API call
-      // In production, uncomment the following:
-      /*
-      await addToCollection({
-        albumId: album.id,
+      await addToRateLater(currentUser.uid, {
+        id: album.id,
         name: album.name,
         artistName: album.artistName,
         imageUrl: album.imageUrl,
-        rating: albumRating,
-        songRatings: songRatings
+        type: 'album',
       });
-      */
-      
-      // Create a review post if there's a rating and review content
-      if (albumRating && albumRating > 0 && reviewContent.trim() && currentUser) {
-        try {
-          await createPost({
-            userId: currentUser.uid,
-            userDisplayName: currentUser.displayName || 'Anonymous',
-            type: POST_TYPES.REVIEW,
-            title: `${album.name} - ${album.artistName}`,
-            content: reviewContent.trim(),
-            albumId: album.id,
-            albumData: {
-              title: album.name,
-              artist: album.artistName,
-              cover: album.imageUrl
-            },
-            rating: albumRating
-          });
-          console.log('Review post created successfully');
-        } catch (reviewError) {
-          console.error('Error creating review post:', reviewError);
-          // Don't fail the collection addition if review creation fails
-        }
-      }
-      
-      // For now, just simulate success
-      setAddedToCollection(true);
-      
-      // Show success message and optionally redirect
-      setTimeout(() => {
-        setAddedToCollection(false);
-        // Success Message to user
-        alert('Album added to your collection successfully!');
-      }, 3000);
+      setAddedToRateLater(true);
+      setApiError(null);
     } catch (error) {
-      throw error; // Re-throw to be handled by the calling function
+      console.error('Error adding to rate later:', error);
+      setApiError('Failed to add to rate later. Please try again.');
     }
   };
 
   const handleReviewSubmit = async () => {
+    if (!reviewText.trim() || !albumRating) return;
+
     setIsCreatingReview(true);
     try {
-      await addToCollectionAndCreateReview(reviewText);
+      // First add to collection
+      await addToCollection(currentUser.uid, {
+        id: album.id,
+        name: album.name,
+        artistName: album.artistName,
+        imageUrl: album.imageUrl,
+        rating: albumRating,
+        dateAdded: new Date().toISOString(),
+        type: 'album',
+      });
+
+      // Then create the review post
+      await createPost({
+        userId: currentUser.uid,
+        userName: currentUser.displayName || 'Anonymous',
+        userPhotoURL: currentUser.photoURL || null,
+        type: POST_TYPES.ALBUM_REVIEW,
+        content: reviewText,
+        albumData: {
+          id: album.id,
+          name: album.name,
+          artistName: album.artistName,
+          imageUrl: album.imageUrl,
+          rating: albumRating,
+        },
+        createdAt: new Date().toISOString(),
+      });
+
+      setAddedToCollection(true);
       setShowReviewModal(false);
       setReviewText('');
+      setApiError(null);
     } catch (error) {
-      console.error('Error submitting review:', error);
-      setApiError('Failed to add album and create review. Please try again.');
+      console.error('Error creating review:', error);
+      setApiError('Failed to create review. Please try again.');
     } finally {
       setIsCreatingReview(false);
     }
   };
 
-  const handleReviewCancel = async () => {
+  const handleReviewCancel = () => {
     setShowReviewModal(false);
     setReviewText('');
-    // Still add to collection even without review
-    try {
-      await addToCollectionAndCreateReview('');
-    } catch (error) {
-      console.error('Error adding to collection:', error);
-      setApiError('Failed to add album to collection. Please try again.');
-    }
-  };
-
-  const handleAddToRateLater = async () => {
-    try {
-      setApiError(null);
-      console.log(`Adding album ${album.name} to user's Rate Later list`);
-      
-      // For demo purposes, we'll simulate the API call
-      // In production, uncomment the following:
-      /*
-      await addToRateLater({
-        albumId: album.id,
-        name: album.name,
-        artistName: album.artistName,
-        imageUrl: album.imageUrl
-      });
-      */
-      
-      // For now, just simulate success
-      setAddedToRateLater(true);
-      
-      // Show success message and optionally reset after a few seconds
-      setTimeout(() => {
-        setAddedToRateLater(false);
-        // Optional: redirect to rate later page
-        // navigate('/rate-later');
-      }, 3000);
-    } catch (error) {
-      console.error('Error adding album to Rate Later list:', error);
-      
-      // Display appropriate error message based on the error
-      if (error.name === 'AbortError') {
-        setApiError('Request timed out. Please try again later.');
-      } else {
-        setApiError('Failed to add album to Rate Later list. Please try again.');
-      }
-      
-      // Clear error after a few seconds
-      setTimeout(() => {
-        setApiError(null);
-      }, 5000);
-    }
-  };
-
-  const handleRetry = () => {
-    setRetryCount(prevCount => prevCount + 1);
   };
 
   if (loading) {
-    return <PageContainer>Loading album details...</PageContainer>;
+    return (
+      <PageContainer>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <p>Loading album details...</p>
+        </div>
+      </PageContainer>
+    );
   }
 
   if (error) {
     return (
       <PageContainer>
-        <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <h2>Error</h2>
-          <p>{error}</p>
-          <ActionButton onClick={handleRetry}>
-            Retry Loading
-          </ActionButton>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <p style={{ color: '#ff6b6b' }}>Error loading album: {error}</p>
+          <button
+            onClick={() => setRetryCount(prev => prev + 1)}
+            style={{ marginTop: '20px', padding: '10px 20px' }}
+          >
+            Retry
+          </button>
         </div>
       </PageContainer>
     );
   }
 
   if (!album) {
-    return <PageContainer>Album not found.</PageContainer>;
+    return (
+      <PageContainer>
+        <div style={{ textAlign: 'center', padding: '50px' }}>
+          <p>Album not found</p>
+        </div>
+      </PageContainer>
+    );
   }
-  
+
   return (
     <PageContainer>
       <AlbumCoverContainer>
-        {album.imageUrl ? (
-          <AlbumCover 
-            src={album.imageUrl} 
-            alt={album.name}
-            onError={(e) => {
-              console.log('Image failed to load:', album.imageUrl);
-              e.target.style.display = 'none';
-              // Show fallback
-              e.target.nextSibling?.style?.setProperty('display', 'flex');
-            }}
-          />
-        ) : null}
-        <div style={{ 
-          width: '100%', 
-          height: '100%', 
-          backgroundColor: '#333', 
-          display: album.imageUrl ? 'none' : 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center',
-          color: '#666',
-          borderRadius: '8px',
-          fontSize: '14px'
-        }}>
-          {album.imageUrl ? 'Image failed to load' : 'No Image Available'}
-        </div>
+        <AlbumCover
+          src={album.imageUrl || 'https://placehold.co/300?text=No+Cover'}
+          alt={album.name}
+          onError={e => {
+            e.target.onerror = null;
+            e.target.src = 'https://placehold.co/300?text=No+Cover';
+          }}
+        />
       </AlbumCoverContainer>
-      
       <AlbumTitle>{album.name}</AlbumTitle>
       <AlbumArtist>{album.artistName}</AlbumArtist>
-      
       <AlbumRatingSection>
         <h3>Album Rating</h3>
-        <StarRating
-          initialRating={albumRating}
-          readOnly={true} // Make it read-only since rating is calculated from songs
-          size={30} // Adjust size as needed
-        />      
+        <StarRating initialRating={albumRating} readOnly={true} size={30} />
         <ActionButtonsContainer>
           <ActionButton
             onClick={handleAddToCollection}
@@ -362,11 +265,16 @@ function AlbumDetailsPage() {
             {apiError}
           </p>
         )}
-        <p style={{ fontSize: '0.9rem', marginTop: '5px', color: 'rgba(255,255,255,0.7)' }}>
+        <p
+          style={{
+            fontSize: '0.9rem',
+            marginTop: '5px',
+            color: 'rgba(255,255,255,0.7)',
+          }}
+        >
           (Average of song ratings)
         </p>
       </AlbumRatingSection>
-
       <AlbumContent>
         <TracksHeader>Tracks</TracksHeader>
         <TracksList>
@@ -376,7 +284,11 @@ function AlbumDetailsPage() {
                 key={track.id}
                 track={track}
                 index={index}
-                currentRating={songRatings[track.id] !== undefined ? songRatings[track.id] : null}
+                currentRating={
+                  songRatings[track.id] !== undefined
+                    ? songRatings[track.id]
+                    : null
+                }
                 onRateSong={handleRateSong}
               />
             ))
@@ -385,40 +297,50 @@ function AlbumDetailsPage() {
           )}
         </TracksList>
       </AlbumContent>
-
       {/* Review Modal */}
       {showReviewModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '10px',
-            maxWidth: '500px',
-            width: '90%',
-            maxHeight: '90vh',
-            overflow: 'auto'
-          }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '2rem',
+              borderRadius: '10px',
+              maxWidth: '500px',
+              width: '90%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+            }}
+          >
             <h3 style={{ marginBottom: '1rem', color: '#333' }}>
               Write a Review for "{album.name}"
             </h3>
-            <p style={{ marginBottom: '1rem', color: '#666', fontSize: '0.9rem' }}>
-              You rated this album {albumRating} stars. Share your thoughts about it!
+            <p
+              style={{
+                marginBottom: '1rem',
+                color: '#666',
+                fontSize: '0.9rem',
+              }}
+            >
+              You rated this album {albumRating} stars. Share your thoughts
+              about it!
             </p>
             <textarea
               value={reviewText}
-              onChange={(e) => setReviewText(e.target.value)}
-              placeholder="What did you think about this album? Share your thoughts..."
+              onChange={e => setReviewText(e.target.value)}
+              placeholder='What did you think about this album? Share your thoughts...'
               style={{
                 width: '100%',
                 minHeight: '120px',
@@ -427,14 +349,26 @@ function AlbumDetailsPage() {
                 borderRadius: '5px',
                 fontSize: '1rem',
                 resize: 'vertical',
-                marginBottom: '1rem'
+                marginBottom: '1rem',
               }}
               maxLength={2000}
             />
-            <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '1rem' }}>
+            <div
+              style={{
+                fontSize: '0.875rem',
+                color: '#666',
+                marginBottom: '1rem',
+              }}
+            >
               {reviewText.length}/2000 characters
             </div>
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '1rem',
+                justifyContent: 'flex-end',
+              }}
+            >
               <button
                 onClick={handleReviewCancel}
                 disabled={isCreatingReview}
@@ -444,7 +378,7 @@ function AlbumDetailsPage() {
                   borderRadius: '5px',
                   backgroundColor: '#f8f9fa',
                   color: '#333',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
                 }}
               >
                 Skip Review
@@ -459,10 +393,12 @@ function AlbumDetailsPage() {
                   backgroundColor: '#007bff',
                   color: 'white',
                   cursor: 'pointer',
-                  opacity: isCreatingReview || !reviewText.trim() ? 0.6 : 1
+                  opacity: isCreatingReview || !reviewText.trim() ? 0.6 : 1,
                 }}
               >
-                {isCreatingReview ? 'Creating Review...' : 'Create Review & Add to Collection'}
+                {isCreatingReview
+                  ? 'Creating Review...'
+                  : 'Create Review & Add to Collection'}
               </button>
             </div>
           </div>

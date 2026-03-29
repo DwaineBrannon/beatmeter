@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useFeaturedPlaylists } from '../hooks/useFeaturedPlaylists';
+import WeeklyFavoritesManager from '../components/admin/WeeklyFavoritesManager';
 import styled from 'styled-components';
 
 const AdminContainer = styled.div`
@@ -46,7 +47,7 @@ const FormRow = styled.div`
   display: flex;
   gap: 1rem;
   align-items: flex-end;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
@@ -72,7 +73,7 @@ const Input = styled.input`
   background: ${props => props.theme.colors.surface.primary};
   color: ${props => props.theme.colors.text.primary};
   font-size: 1rem;
-  
+
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.accent.primary};
@@ -86,35 +87,35 @@ const Button = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &.primary {
     background: ${props => props.theme.colors.accent.primary};
     color: white;
-    
+
     &:hover:not(:disabled) {
       background: ${props => props.theme.colors.accent.secondary};
     }
   }
-  
+
   &.secondary {
     background: ${props => props.theme.colors.surface.tertiary};
     color: ${props => props.theme.colors.text.primary};
     border: 1px solid ${props => props.theme.colors.border.primary};
-    
+
     &:hover:not(:disabled) {
       background: ${props => props.theme.colors.surface.primary};
     }
   }
-  
+
   &.danger {
     background: #e74c3c;
     color: white;
-    
+
     &:hover:not(:disabled) {
       background: #c0392b;
     }
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -164,12 +165,12 @@ const StatusBadge = styled.span`
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 600;
-  
+
   &.active {
     background: #27ae60;
     color: white;
   }
-  
+
   &.inactive {
     background: #95a5a6;
     color: white;
@@ -198,12 +199,19 @@ const EmptyState = styled.div`
 
 function AdminDashboard() {
   const { currentUser } = useAuth();
-  const { playlists, loading, error, addPlaylist, deletePlaylist, toggleStatus } = useFeaturedPlaylists();
-  
+  const {
+    playlists,
+    loading,
+    error,
+    addPlaylist,
+    deletePlaylist,
+    toggleStatus,
+  } = useFeaturedPlaylists();
+
   const [formData, setFormData] = useState({
     spotifyUrl: '',
     title: '',
-    description: ''
+    description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -219,38 +227,38 @@ function AdminDashboard() {
     );
   }
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     if (!formData.spotifyUrl.trim()) {
       alert('Please enter a Spotify playlist URL');
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await addPlaylist(
         formData.spotifyUrl.trim(),
         formData.title.trim() || undefined,
         formData.description.trim() || undefined
       );
-      
+
       // Reset form
       setFormData({
         spotifyUrl: '',
         title: '',
-        description: ''
+        description: '',
       });
-      
+
       alert('Playlist added successfully!');
     } catch (err) {
       alert(`Failed to add playlist: ${err.message}`);
@@ -259,11 +267,11 @@ function AdminDashboard() {
     }
   };
 
-  const handleDelete = async (playlistId) => {
+  const handleDelete = async playlistId => {
     if (!confirm('Are you sure you want to delete this playlist?')) {
       return;
     }
-    
+
     try {
       await deletePlaylist(playlistId);
       alert('Playlist deleted successfully!');
@@ -272,7 +280,7 @@ function AdminDashboard() {
     }
   };
 
-  const handleToggleStatus = async (playlistId) => {
+  const handleToggleStatus = async playlistId => {
     try {
       await toggleStatus(playlistId);
     } catch (err) {
@@ -287,6 +295,8 @@ function AdminDashboard() {
         <Subtitle>Manage featured playlists on the home page</Subtitle>
       </Header>
 
+      <WeeklyFavoritesManager />
+
       {error && <ErrorMessage>{error}</ErrorMessage>}
 
       <Section>
@@ -294,42 +304,42 @@ function AdminDashboard() {
         <Form onSubmit={handleSubmit}>
           <FormRow>
             <FormGroup>
-              <Label htmlFor="spotifyUrl">Spotify Playlist URL *</Label>
+              <Label htmlFor='spotifyUrl'>Spotify Playlist URL *</Label>
               <Input
-                type="text"
-                id="spotifyUrl"
-                name="spotifyUrl"
+                type='text'
+                id='spotifyUrl'
+                name='spotifyUrl'
                 value={formData.spotifyUrl}
                 onChange={handleInputChange}
-                placeholder="https://open.spotify.com/playlist/..."
+                placeholder='https://open.spotify.com/playlist/...'
                 required
               />
             </FormGroup>
-            <Button type="submit" className="primary" disabled={isSubmitting}>
+            <Button type='submit' className='primary' disabled={isSubmitting}>
               {isSubmitting ? 'Adding...' : 'Add Playlist'}
             </Button>
           </FormRow>
           <FormRow>
             <FormGroup>
-              <Label htmlFor="title">Custom Title (optional)</Label>
+              <Label htmlFor='title'>Custom Title (optional)</Label>
               <Input
-                type="text"
-                id="title"
-                name="title"
+                type='text'
+                id='title'
+                name='title'
                 value={formData.title}
                 onChange={handleInputChange}
-                placeholder="Leave empty to use Spotify playlist name"
+                placeholder='Leave empty to use Spotify playlist name'
               />
             </FormGroup>
             <FormGroup>
-              <Label htmlFor="description">Description (optional)</Label>
+              <Label htmlFor='description'>Description (optional)</Label>
               <Input
-                type="text"
-                id="description"
-                name="description"
+                type='text'
+                id='description'
+                name='description'
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Brief description of the playlist"
+                placeholder='Brief description of the playlist'
               />
             </FormGroup>
           </FormRow>
@@ -338,7 +348,7 @@ function AdminDashboard() {
 
       <Section>
         <SectionTitle>Current Featured Playlists</SectionTitle>
-        
+
         {loading ? (
           <LoadingMessage>Loading playlists...</LoadingMessage>
         ) : playlists.length === 0 ? (
@@ -347,17 +357,17 @@ function AdminDashboard() {
           </EmptyState>
         ) : (
           <PlaylistList>
-            {playlists.map((playlist) => (
+            {playlists.map(playlist => (
               <PlaylistItem key={playlist.id}>
                 <PlaylistInfo>
                   <PlaylistTitle>{playlist.title}</PlaylistTitle>
                   <PlaylistMeta>
-                    ID: {playlist.id} • 
+                    ID: {playlist.id} •
                     {playlist.description && ` ${playlist.description} • `}
-                    <a 
-                      href={playlist.spotifyUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
+                    <a
+                      href={playlist.spotifyUrl}
+                      target='_blank'
+                      rel='noopener noreferrer'
                       style={{ color: '#1db954' }}
                     >
                       View on Spotify
@@ -365,17 +375,19 @@ function AdminDashboard() {
                   </PlaylistMeta>
                 </PlaylistInfo>
                 <PlaylistActions>
-                  <StatusBadge className={playlist.isActive ? 'active' : 'inactive'}>
+                  <StatusBadge
+                    className={playlist.isActive ? 'active' : 'inactive'}
+                  >
                     {playlist.isActive ? 'Active' : 'Inactive'}
                   </StatusBadge>
-                  <Button 
-                    className="secondary" 
+                  <Button
+                    className='secondary'
                     onClick={() => handleToggleStatus(playlist.id)}
                   >
                     {playlist.isActive ? 'Disable' : 'Enable'}
                   </Button>
-                  <Button 
-                    className="danger"
+                  <Button
+                    className='danger'
                     onClick={() => handleDelete(playlist.id)}
                   >
                     Delete

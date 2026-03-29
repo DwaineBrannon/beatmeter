@@ -16,22 +16,25 @@ import {
 
 const Lists = () => {
   // Your component logic here
-  
 
   return (
     <>
-      
       <ListsPageContainer>
         <ListsHeader>Your Lists</ListsHeader>
         <ListsContentContainer>
           {/* Your playlist content here */}
-            <PlaylistCard>
-                <PlaylistImage src="https://via.placeholder.com/150" alt="Playlist Cover" />
-                <PlaylistInfo>
-                <PlaylistTitle>Chill Vibes</PlaylistTitle>
-                <PlaylistDescription>A collection of relaxing tunes.</PlaylistDescription>
-                </PlaylistInfo>
-            </PlaylistCard>
+          <PlaylistCard>
+            <PlaylistImage
+              src='https://placehold.co/150'
+              alt='Playlist Cover'
+            />
+            <PlaylistInfo>
+              <PlaylistTitle>Chill Vibes</PlaylistTitle>
+              <PlaylistDescription>
+                A collection of relaxing tunes.
+              </PlaylistDescription>
+            </PlaylistInfo>
+          </PlaylistCard>
         </ListsContentContainer>
       </ListsPageContainer>
     </>

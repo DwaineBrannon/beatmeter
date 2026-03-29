@@ -59,9 +59,10 @@ const Input = styled.input`
   padding: 0.75rem;
   border: 1px solid ${props => props.theme.colors.border || '#ddd'};
   border-radius: 4px;
-  background-color: ${props => props.theme.colors.surface.secondary || '#f9f9f9'};
+  background-color: ${props =>
+    props.theme.colors.surface.secondary || '#f9f9f9'};
   color: ${props => props.theme.colors.text.primary || '#111'};
-  
+
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.accent || '#007bff'};
@@ -73,11 +74,12 @@ const Textarea = styled.textarea`
   padding: 0.75rem;
   border: 1px solid ${props => props.theme.colors.border || '#ddd'};
   border-radius: 4px;
-  background-color: ${props => props.theme.colors.surface.secondary || '#f9f9f9'};
+  background-color: ${props =>
+    props.theme.colors.surface.secondary || '#f9f9f9'};
   color: ${props => props.theme.colors.text.primary || '#111'};
   resize: vertical;
   min-height: 100px;
-  
+
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.accent || '#007bff'};
@@ -94,11 +96,11 @@ const SubmitButton = styled.button`
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.2s;
-  
+
   &:hover:not(:disabled) {
     background-color: #0069d9;
   }
-  
+
   &:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
@@ -135,7 +137,7 @@ const ImageUploadButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background-color: ${props => props.theme.colors.accent || '#007bff'}20;
   }
@@ -143,7 +145,7 @@ const ImageUploadButton = styled.button`
 
 function EditProfileModal({ isOpen, onClose, userData }) {
   const { currentUser, updateUserProfile } = useAuth();
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -151,28 +153,40 @@ function EditProfileModal({ isOpen, onClose, userData }) {
   const [profilePicture, setProfilePicture] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isNewProfile, setIsNewProfile] = useState(false);
-  
+
   const fileInputRef = useRef(null);
-  
+
   // Initialize form data when modal opens or userData changes
   useEffect(() => {
     if (isOpen && userData) {
       setDisplayName(userData.name || '');
       setBio(userData.bio || '');
-      setImagePreview(userData.profilePicture || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo=');
+      setImagePreview(
+        userData.profilePicture ||
+          'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxNTAiIGhlaWdodD0iMTUwIiBmaWxsPSIjZjVmNWY1Ii8+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNjAiIHI9IjI1IiBmaWxsPSIjY2NjY2NjIi8+CjxwYXRoIGQ9Ik00NSAxMjBjMC0xNi41NjkgMTMuNDMxLTMwIDMwLTMwczMwIDEzLjQzMSAzMCAzMHYxMEg0NXYtMTB6IiBmaWxsPSIjY2NjY2NjIi8+Cjwvc3ZnPgo='
+      );
       setIsNewProfile(userData.isNewProfile || false);
     }
   }, [isOpen, userData]);
 
   if (!isOpen) return null;
 
-  const handleProfilePictureChange = (e) => {
+  const handleProfilePictureChange = e => {
     const file = e.target.files[0];
     if (file) {
+      // Client-side validation: image type and max size 5 MB
+      if (!file.type || !file.type.startsWith('image/')) {
+        setError('Selected file is not an image');
+        return;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image exceeds 5 MB limit');
+        return;
+      }
       setProfilePicture(file);
       // Preview the selected image
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = event => {
         setImagePreview(event.target.result);
       };
       reader.readAsDataURL(file);
@@ -183,25 +197,25 @@ function EditProfileModal({ isOpen, onClose, userData }) {
     fileInputRef.current.click();
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     if (displayName.trim() === '') {
       setError('Display name cannot be empty');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      
+
       await updateUserProfile({
         displayName,
         bio,
         profilePicture,
-        profileSetupComplete: true // Ensure profile is marked as complete when editing
+        profileSetupComplete: true, // Ensure profile is marked as complete when editing
       });
-      
+
       onClose(true); // Close with refresh flag
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -212,18 +226,22 @@ function EditProfileModal({ isOpen, onClose, userData }) {
   };
 
   return (
-    <ModalOverlay onClick={(e) => e.target === e.currentTarget && onClose()}>      <ModalContent>
+    <ModalOverlay onClick={e => e.target === e.currentTarget && onClose()}>
+      {' '}
+      <ModalContent>
         <CloseButton onClick={() => onClose()}>×</CloseButton>
         <Title>{isNewProfile ? 'Complete Your Profile' : 'Edit Profile'}</Title>
-        
+
         {isNewProfile && (
-          <div style={{ 
-            backgroundColor: '#f8f9fa', 
-            padding: '12px', 
-            borderRadius: '4px', 
-            marginBottom: '16px',
-            border: '1px solid #e9ecef'
-          }}>
+          <div
+            style={{
+              backgroundColor: '#f8f9fa',
+              padding: '12px',
+              borderRadius: '4px',
+              marginBottom: '16px',
+              border: '1px solid #e9ecef',
+            }}
+          >
             <p style={{ margin: '0 0 8px 0', color: '#495057' }}>
               Welcome to BeatMeter! Complete your profile to get started.
             </p>
@@ -234,47 +252,61 @@ function EditProfileModal({ isOpen, onClose, userData }) {
             </ul>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit}>
           {error && <ErrorMessage>{error}</ErrorMessage>}
-          
+
           <ProfileImageContainer>
-            <ProfileImagePreview src={imagePreview} alt="Profile Preview" />
+            <ProfileImagePreview src={imagePreview} alt='Profile Preview' />
             <input
-              type="file"
-              accept="image/*"
+              type='file'
+              accept='image/*'
               onChange={handleProfilePictureChange}
               ref={fileInputRef}
               style={{ display: 'none' }}
             />
-            <ImageUploadButton type="button" onClick={triggerFileInput}>
+            <ImageUploadButton type='button' onClick={triggerFileInput}>
               Change Profile Picture
             </ImageUploadButton>
           </ProfileImageContainer>
-          
+
           <InputGroup>
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor='displayName'>Display Name</Label>
             <Input
-              id="displayName"
-              type="text"
+              id='displayName'
+              type='text'
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your display name"
+              onChange={e => setDisplayName(e.target.value)}
+              placeholder='Enter your display name'
               required
             />
           </InputGroup>
-          
+
           <InputGroup>
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor='bio'>Bio</Label>
             <Textarea
-              id="bio"
+              id='bio'
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell us a bit about yourself..."
+              onChange={e => {
+                const val = e.target.value.slice(0, 200);
+                setBio(val);
+                setError('');
+              }}
+              placeholder='Tell us a bit about yourself...'
+              maxLength={200}
             />
+            <div
+              style={{
+                textAlign: 'right',
+                fontSize: '0.85rem',
+                color: '#6c757d',
+              }}
+            >
+              {bio.length}/200
+            </div>
           </InputGroup>
-          
-          <SubmitButton type="submit" disabled={loading}>
+
+          <SubmitButton type='submit' disabled={loading}>
             {loading ? 'Saving Changes...' : 'Save Changes'}
           </SubmitButton>
         </form>

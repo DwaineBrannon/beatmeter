@@ -17,7 +17,8 @@ const ProfileSetupContainer = styled.div`
 const SetupForm = styled.form`
   width: 100%;
   max-width: 500px;
-  background-color: ${props => props.theme.colors.surface.primary || 'rgba(30, 30, 30, 0.6)'};
+  background-color: ${props =>
+    props.theme.colors.surface.primary || 'rgba(30, 30, 30, 0.6)'};
   border-radius: 10px;
   padding: 2rem;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
@@ -44,9 +45,10 @@ const Input = styled.input`
   padding: 0.75rem;
   border: 1px solid ${props => props.theme.colors.border || '#444'};
   border-radius: 4px;
-  background-color: ${props => props.theme.colors.surface.secondary || 'rgba(20, 20, 20, 0.6)'};
+  background-color: ${props =>
+    props.theme.colors.surface.secondary || 'rgba(20, 20, 20, 0.6)'};
   color: ${props => props.theme.colors.text.primary || '#fff'};
-  
+
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.accent || '#1db954'};
@@ -58,11 +60,12 @@ const Textarea = styled.textarea`
   padding: 0.75rem;
   border: 1px solid ${props => props.theme.colors.border || '#444'};
   border-radius: 4px;
-  background-color: ${props => props.theme.colors.surface.secondary || 'rgba(20, 20, 20, 0.6)'};
+  background-color: ${props =>
+    props.theme.colors.surface.secondary || 'rgba(20, 20, 20, 0.6)'};
   color: ${props => props.theme.colors.text.primary || '#fff'};
   resize: vertical;
   min-height: 100px;
-  
+
   &:focus {
     outline: none;
     border-color: ${props => props.theme.colors.accent || '#1db954'};
@@ -79,11 +82,11 @@ const SubmitButton = styled.button`
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.2s;
-  
+
   &:hover {
-    background-color: ${props => props.disabled ? '#cccccc' : '#18a448'};
+    background-color: ${props => (props.disabled ? '#cccccc' : '#18a448')};
   }
-  
+
   &:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
@@ -120,7 +123,7 @@ const ImageUploadButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     background-color: ${props => props.theme.colors.accent || '#1db954'}20;
   }
@@ -129,23 +132,27 @@ const ImageUploadButton = styled.button`
 function ProfileSetup() {
   const { currentUser, updateUserProfile } = useAuth();
   const navigate = useNavigate();
-  
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [displayName, setDisplayName] = useState(currentUser?.displayName || '');
+  const [displayName, setDisplayName] = useState(
+    currentUser?.displayName || ''
+  );
   const [bio, setBio] = useState('');
   const [profilePicture, setProfilePicture] = useState(null);
-  const [imagePreview, setImagePreview] = useState(currentUser?.photoURL || 'https://via.placeholder.com/150');
-  
+  const [imagePreview, setImagePreview] = useState(
+    currentUser?.photoURL || 'https://placehold.co/150'
+  );
+
   const fileInputRef = useRef(null);
 
-  const handleProfilePictureChange = (e) => {
+  const handleProfilePictureChange = e => {
     const file = e.target.files[0];
     if (file) {
       setProfilePicture(file);
       // Preview the selected image
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.onload = event => {
         setImagePreview(event.target.result);
       };
       reader.readAsDataURL(file);
@@ -156,24 +163,24 @@ function ProfileSetup() {
     fileInputRef.current.click();
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     if (displayName.trim() === '') {
       setError('Display name cannot be empty');
       return;
     }
-      try {
+    try {
       setLoading(true);
       setError('');
-      
+
       await updateUserProfile({
         displayName,
         bio,
         profilePicture,
-        profileSetupComplete: true // Mark profile as complete
+        profileSetupComplete: true, // Mark profile as complete
       });
-        // Redirect to profile page after successful setup
+      // Redirect to profile page after successful setup
       navigate(`/profile/${displayName}`);
     } catch (error) {
       console.error('Error setting up profile:', error);
@@ -187,50 +194,50 @@ function ProfileSetup() {
     <ProfileSetupContainer>
       <SetupForm onSubmit={handleSubmit}>
         <Title>Set Up Your Profile</Title>
-        
+
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         <ProfileImageContainer>
-          <ProfileImagePreview src={imagePreview} alt="Profile Preview" />
+          <ProfileImagePreview src={imagePreview} alt='Profile Preview' />
           <input
-            type="file"
-            accept="image/*"
+            type='file'
+            accept='image/*'
             onChange={handleProfilePictureChange}
             ref={fileInputRef}
             style={{ display: 'none' }}
           />
-          <ImageUploadButton type="button" onClick={triggerFileInput}>
+          <ImageUploadButton type='button' onClick={triggerFileInput}>
             Choose Profile Picture
           </ImageUploadButton>
         </ProfileImageContainer>
-        
+
         <InputGroup>
-          <Label htmlFor="displayName">Display Name</Label>
+          <Label htmlFor='displayName'>Display Name</Label>
           <Input
-            id="displayName"
-            type="text"
+            id='displayName'
+            type='text'
             value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Choose a display name"
+            onChange={e => setDisplayName(e.target.value)}
+            placeholder='Choose a display name'
             required
           />
         </InputGroup>
-        
+
         <InputGroup>
-          <Label htmlFor="bio">Bio</Label>
+          <Label htmlFor='bio'>Bio</Label>
           <Textarea
-            id="bio"
+            id='bio'
             value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            placeholder="Tell us a bit about yourself..."
+            onChange={e => setBio(e.target.value)}
+            placeholder='Tell us a bit about yourself...'
           />
         </InputGroup>
-        
-        <SubmitButton type="submit" disabled={loading}>
+
+        <SubmitButton type='submit' disabled={loading}>
           {loading ? 'Setting Up Profile...' : 'Complete Setup'}
         </SubmitButton>
       </SetupForm>
-      
+
       {/* Temporary migration component for existing users */}
       <ProfileMigrationButton />
     </ProfileSetupContainer>

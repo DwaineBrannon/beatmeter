@@ -34,14 +34,19 @@ const TabContainer = styled.div`
 const Tab = styled.button`
   background: none;
   border: none;
-  color: ${props => props.$active ? props.theme.colors.accent || '#1db954' : 'rgba(255, 255, 255, 0.7)'};
+  color: ${props =>
+    props.$active
+      ? props.theme.colors.accent || '#1db954'
+      : 'rgba(255, 255, 255, 0.7)'};
   font-size: 1rem;
-  font-weight: ${props => props.$active ? '600' : '400'};
+  font-weight: ${props => (props.$active ? '600' : '400')};
   padding: 10px 0;
-  border-bottom: 2px solid ${props => props.$active ? props.theme.colors.accent || '#1db954' : 'transparent'};
+  border-bottom: 2px solid
+    ${props =>
+      props.$active ? props.theme.colors.accent || '#1db954' : 'transparent'};
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     color: ${props => props.theme.colors.text.primary || '#fff'};
   }
@@ -71,7 +76,7 @@ const UserCard = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.2s;
   cursor: pointer;
-  
+
   &:hover {
     background: rgba(40, 40, 40, 0.8);
     border-color: rgba(255, 255, 255, 0.2);
@@ -148,10 +153,10 @@ const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-  
+
   const query = searchParams.get('q') || '';
   const tab = searchParams.get('tab') || 'all';
-  
+
   const [userResults, setUserResults] = useState([]);
   const [musicResults, setMusicResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -160,36 +165,40 @@ const SearchResults = () => {
   // Search both users and music
   const performSearch = async () => {
     if (!query.trim()) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       const promises = [];
-      
+
       // Search users
       if (tab === 'all' || tab === 'users') {
         promises.push(searchUsers(query, 20));
       } else {
         promises.push(Promise.resolve([]));
       }
-      
+
       // Search music
       if (tab === 'all' || tab === 'music') {
         const musicSearchPromise = fetch(
-          apiUrl(`/music/search?q=${encodeURIComponent(query)}&type=album&limit=20`)
-        ).then(res => {
-          if (!res.ok) throw new Error('Music search failed');
-          return res.json();
-        }).then(data => data.albums || []);
-        
+          apiUrl(
+            `/music/search?q=${encodeURIComponent(query)}&type=album&limit=20`
+          )
+        )
+          .then(res => {
+            if (!res.ok) throw new Error('Music search failed');
+            return res.json();
+          })
+          .then(data => data.albums || []);
+
         promises.push(musicSearchPromise);
       } else {
         promises.push(Promise.resolve([]));
       }
-      
+
       const [users, music] = await Promise.all(promises);
-      
+
       setUserResults(users);
       setMusicResults(music);
     } catch (err) {
@@ -206,19 +215,21 @@ const SearchResults = () => {
     }
   }, [query, tab]);
 
-  const handleTabChange = (newTab) => {
+  const handleTabChange = newTab => {
     const params = new URLSearchParams(searchParams);
     params.set('tab', newTab);
     navigate(`/search?${params.toString()}`);
   };
 
-  const handleUserClick = (user) => {
+  const handleUserClick = user => {
     navigate(`/profile/${user.displayName}`);
   };
 
   const hasResults = userResults.length > 0 || musicResults.length > 0;
-  const showUsers = (tab === 'all' || tab === 'users') && userResults.length > 0;
-  const showMusic = (tab === 'all' || tab === 'music') && musicResults.length > 0;
+  const showUsers =
+    (tab === 'all' || tab === 'users') && userResults.length > 0;
+  const showMusic =
+    (tab === 'all' || tab === 'music') && musicResults.length > 0;
 
   return (
     <SearchPageContainer>
@@ -227,34 +238,26 @@ const SearchResults = () => {
       </SearchHeader>
 
       <TabContainer>
-        <Tab 
-          $active={tab === 'all'} 
-          onClick={() => handleTabChange('all')}
-        >
+        <Tab $active={tab === 'all'} onClick={() => handleTabChange('all')}>
           All
         </Tab>
-        <Tab 
-          $active={tab === 'users'} 
-          onClick={() => handleTabChange('users')}
-        >
+        <Tab $active={tab === 'users'} onClick={() => handleTabChange('users')}>
           Users ({userResults.length})
         </Tab>
-        <Tab 
-          $active={tab === 'music'} 
-          onClick={() => handleTabChange('music')}
-        >
+        <Tab $active={tab === 'music'} onClick={() => handleTabChange('music')}>
           Music ({musicResults.length})
         </Tab>
       </TabContainer>
 
       <ResultsContainer>
         {error && <ErrorMessage>{error}</ErrorMessage>}
-        
+
         {loading ? (
           <LoadingSpinner>Searching...</LoadingSpinner>
         ) : !hasResults && query ? (
           <NoResults>
-            No results found for "{query}". Try searching with different keywords.
+            No results found for "{query}". Try searching with different
+            keywords.
           </NoResults>
         ) : (
           <>
@@ -262,14 +265,14 @@ const SearchResults = () => {
               <>
                 <SectionTitle>Users</SectionTitle>
                 <UserResultsGrid>
-                  {userResults.map((user) => (
-                    <UserCard 
-                      key={user.id} 
+                  {userResults.map(user => (
+                    <UserCard
+                      key={user.id}
                       onClick={() => handleUserClick(user)}
                     >
                       <UserHeader>
-                        <UserAvatar 
-                          src={user.profilePicture || 'https://via.placeholder.com/50'} 
+                        <UserAvatar
+                          src={user.profilePicture || 'https://placehold.co/50'}
                           alt={`${user.displayName}'s avatar`}
                         />
                         <UserInfo>
@@ -287,12 +290,8 @@ const SearchResults = () => {
               <>
                 <SectionTitle>Music</SectionTitle>
                 <MusicResultsGrid>
-                  {musicResults.map((album) => (
-                    <AlbumCard 
-                      key={album.id}
-                      album={album}
-                      variant="grid"
-                    />
+                  {musicResults.map(album => (
+                    <AlbumCard key={album.id} album={album} variant='grid' />
                   ))}
                 </MusicResultsGrid>
               </>

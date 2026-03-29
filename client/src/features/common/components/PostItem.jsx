@@ -33,8 +33,9 @@ const PostType = styled.span`
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  background-color: ${props => props.$type === 'Reviews' ? '#e3f2fd' : '#f3e5f5'};
-  color: ${props => props.$type === 'Reviews' ? '#1976d2' : '#7b1fa2'};
+  background-color: ${props =>
+    props.$type === 'Reviews' ? '#e3f2fd' : '#f3e5f5'};
+  color: ${props => (props.$type === 'Reviews' ? '#1976d2' : '#7b1fa2')};
   margin-bottom: 0.5rem;
 `;
 
@@ -75,9 +76,10 @@ const ActionButton = styled.button`
   padding: 0.25rem;
   border-radius: 4px;
   font-size: 0.875rem;
-  
+
   &:hover {
-    background-color: ${props => props.theme.colors.surface.secondary || '#f8f9fa'};
+    background-color: ${props =>
+      props.theme.colors.surface.secondary || '#f8f9fa'};
     color: ${props => props.theme.colors.text.primary || '#111'};
   }
 
@@ -102,7 +104,8 @@ const PostStats = styled.div`
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid ${props => props.theme.colors.border.secondary || '#f1f3f4'};
+  border-top: 1px solid
+    ${props => props.theme.colors.border.secondary || '#f1f3f4'};
   font-size: 0.875rem;
   color: ${props => props.theme.colors.text.secondary || '#6c757d'};
 `;
@@ -156,34 +159,35 @@ const ConfirmButton = styled.button`
   border-radius: 4px;
   font-size: 0.875rem;
   cursor: pointer;
-  
+
   &.cancel {
-    background-color: ${props => props.theme.colors.surface.secondary || '#f8f9fa'};
+    background-color: ${props =>
+      props.theme.colors.surface.secondary || '#f8f9fa'};
     color: ${props => props.theme.colors.text.primary || '#111'};
   }
-  
+
   &.delete {
     background-color: #dc3545;
     color: white;
   }
 `;
 
-const PostItem = ({ post, onDelete, showActions = true }) => {
+const PostItem = ({ post, onDelete, showActions = true, className, style }) => {
   const { currentUser } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const formatDate = (timestamp) => {
+  const formatDate = timestamp => {
     if (!timestamp) return 'Just now';
-    
+
     const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    
+
     return date.toLocaleDateString();
   };
 
@@ -213,7 +217,7 @@ const PostItem = ({ post, onDelete, showActions = true }) => {
 
   return (
     <>
-      <PostContainer>
+      <PostContainer className={className} style={style}>
         <PostHeader>
           <PostInfo>
             <PostType $type={post.type}>{post.type}</PostType>
@@ -225,10 +229,10 @@ const PostItem = ({ post, onDelete, showActions = true }) => {
           </PostInfo>
           {showActions && isOwnPost && (
             <PostActions>
-              <ActionButton 
-                className="delete" 
+              <ActionButton
+                className='delete'
                 onClick={handleDeleteClick}
-                title="Delete post"
+                title='Delete post'
               >
                 🗑️
               </ActionButton>
@@ -239,32 +243,31 @@ const PostItem = ({ post, onDelete, showActions = true }) => {
         <PostContent>{post.content}</PostContent>
 
         <PostStats>
-          <StatItem>
-            ❤️ {post.likesCount || 0}
-          </StatItem>
-          <StatItem>
-            💬 {post.commentsCount || 0}
-          </StatItem>
+          <StatItem>❤️ {post.likesCount || 0}</StatItem>
+          <StatItem>💬 {post.commentsCount || 0}</StatItem>
         </PostStats>
       </PostContainer>
 
       {showDeleteConfirm && (
-        <DeleteConfirmation onClick={(e) => e.target === e.currentTarget && handleDeleteCancel()}>
+        <DeleteConfirmation
+          onClick={e => e.target === e.currentTarget && handleDeleteCancel()}
+        >
           <ConfirmDialog>
             <ConfirmTitle>Delete Post</ConfirmTitle>
             <ConfirmText>
-              Are you sure you want to delete "{post.title}"? This action cannot be undone.
+              Are you sure you want to delete "{post.title}"? This action cannot
+              be undone.
             </ConfirmText>
             <ConfirmButtons>
-              <ConfirmButton 
-                className="cancel" 
+              <ConfirmButton
+                className='cancel'
                 onClick={handleDeleteCancel}
                 disabled={isDeleting}
               >
                 Cancel
               </ConfirmButton>
-              <ConfirmButton 
-                className="delete" 
+              <ConfirmButton
+                className='delete'
                 onClick={handleDeleteConfirm}
                 disabled={isDeleting}
               >

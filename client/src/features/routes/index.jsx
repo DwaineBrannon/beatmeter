@@ -7,7 +7,7 @@ import Login from '../../pages/Login';
 import CreateAccount from '../../pages/CreateAccount';
 import ForgotPassword from '../../pages/ForgotPassword';
 import Lists from '../../pages/Lists';
-import Music from '../../pages/Music.jsx';
+import Music from '../music/pages/MusicPage';
 import SearchResults from '../../pages/SearchResults';
 import AlbumDetailsPage from '../../pages/AlbumDetailsPage';
 import UserCollectionPage from '../../pages/UserCollectionPage';
@@ -23,90 +23,92 @@ export const routes = [
     element: Home,
     title: 'Home | BeatMeter',
     isPublic: true,
-    description: 'Track and rate your favorite music'
+    description: 'Track and rate your favorite music',
   },
   {
     path: '/sorter',
     element: Sorter,
     title: 'Song Sorter | BeatMeter',
     isPublic: true,
-    description: 'Sort and rank your favorite songs'
-  },  {
+    description: 'Sort and rank your favorite songs',
+  },
+  {
     // Dynamic route to handle user profiles
-    path: '/profile/:username', 
+    path: '/profile/:username',
     element: Profile,
     title: 'Profile | BeatMeter',
     isPublic: true,
-    description: 'View user profile and rankings'
+    description: 'View user profile and rankings',
   },
   {
-    path: '/profile', 
+    path: '/profile',
     element: Profile,
     title: 'My Profile | BeatMeter',
     isPublic: false,
-    description: 'View your profile'
+    description: 'View your profile',
   },
   {
     path: '/profile-setup',
     element: ProfileSetup,
     title: 'Setup Your Profile | BeatMeter',
     isPublic: false,
-    description: 'Complete your profile setup'
+    description: 'Complete your profile setup',
   },
   {
     path: '/login',
     element: Login,
     title: 'Login | BeatMeter',
     isPublic: true,
-    description: 'Sign in to BeatMeter'
+    description: 'Sign in to BeatMeter',
   },
   {
     path: '/create-account',
     element: CreateAccount,
     title: 'Create Account | BeatMeter',
     isPublic: true,
-    description: 'Create a new BeatMeter account'
+    description: 'Create a new BeatMeter account',
   },
   {
     path: '/forgot-password',
     element: ForgotPassword,
     title: 'Forgot Password | BeatMeter',
     isPublic: true,
-    description: 'Reset your BeatMeter password'
+    description: 'Reset your BeatMeter password',
   },
   {
     path: '/lists',
     element: Lists,
     title: 'Playlists',
     isPublic: true,
-    description: 'Explore user-generated playlists and recommendations'
+    description: 'Explore user-generated playlists and recommendations',
   },
   {
     path: '/music',
     element: Music,
     title: 'Music | BeatMeter',
     isPublic: true,
-    description: 'Discover and manage your music collections'
+    description: 'Discover and manage your music collections',
   },
   {
     path: '/search',
     element: SearchResults,
     title: 'Search Results | BeatMeter',
     isPublic: true,
-    description: 'Search for music and users'
-  },  {
+    description: 'Search for music and users',
+  },
+  {
     path: '/album/:albumId', // New route for album details
     element: AlbumDetailsPage,
     title: 'Album Details | BeatMeter',
     isPublic: true,
-    description: 'View album details and ratings'
+    description: 'View album details and ratings',
   },
   {
     path: '/collection', // User collection route
     element: UserCollectionPage,
     title: 'Your Collection | BeatMeter',
     isPublic: false, // This should be false in a real app as it requires authentication
-    description: 'View and manage your music collection'
+    description: 'View and manage your music collection',
   },
   {
     path: '/admin',
@@ -114,40 +116,42 @@ export const routes = [
     title: 'Admin Dashboard | BeatMeter',
     isPublic: false,
     isAdmin: true, // Special flag for admin routes
-    description: 'Admin panel for managing featured content'
-  }
+    description: 'Admin panel for managing featured content',
+  },
 ];
 
 // Helper to generate Route elements with layout
 export const generateRoutes = () => {
   return (
     <Route element={<MainLayout />}>
-      {routes.map(({ path, element: ElementComponent, title, isPublic, isAdmin }) => {
-        const Component = ElementComponent;
-        return (
-          <Route 
-            key={path} 
-            path={path} 
-            element={
-              <>
-                {/* Update page title when route changes */}
-                <title>{title}</title>
-                {isAdmin ? (
-                  <AdminRoute>
+      {routes.map(
+        ({ path, element: ElementComponent, title, isPublic, isAdmin }) => {
+          const Component = ElementComponent;
+          return (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <>
+                  {/* Update page title when route changes */}
+                  <title>{title}</title>
+                  {isAdmin ? (
+                    <AdminRoute>
+                      <Component />
+                    </AdminRoute>
+                  ) : isPublic ? (
                     <Component />
-                  </AdminRoute>
-                ) : isPublic ? (
-                  <Component />
-                ) : (
-                  <ProtectedRoute>
-                    <Component />
-                  </ProtectedRoute>
-                )}
-              </>
-            } 
-          />
-        );
-      })}
+                  ) : (
+                    <ProtectedRoute>
+                      <Component />
+                    </ProtectedRoute>
+                  )}
+                </>
+              }
+            />
+          );
+        }
+      )}
     </Route>
   );
 };
